@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.mypy_cache/
+.vscode/
+.idea/
+*.swp
+.DS_Store
+.env
+*.log
+dist/
+build/
+*.egg-info/
+*.parquet
+bench/results/*
+!bench/results/.gitkeep
