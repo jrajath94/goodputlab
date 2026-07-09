@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 in flight (01-01 merged to main; Wave 2 partial — 01-05 sentinel complete on phase-1/01-05-sentinel branch)
-last_updated: "2026-07-09T00:21:31Z"
-last_activity: 2026-07-08 -- Phase 01 plan 01-05 (sentinel three-layer defense) complete on branch phase-1/01-05-sentinel
+stopped_at: Phase 1 Wave 2 partial — 01-05 sentinel merged to main; 01-03 compose + 01-04 proxy executors still running
+last_updated: "2026-07-09T00:23:00Z"
+last_activity: 2026-07-08 -- Phase 01 plan 01-05 (sentinel three-layer defense) merged to main
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 7
-  completed_plans: 1
-  percent: 14
+  completed_plans: 2
+  percent: 29
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/research/PITFALLS.md (12 pitfalls, phase-mapped)
 ## Current Position
 
 Phase: 1 of 8 (Topologies)
-Plan: 1 of 7 (skeleton complete; 01-05 sentinel complete on phase-1/01-05-sentinel branch)
-Status: Wave 2 in flight (01-05 sentinel merged to branch; 01-03 compose and 01-04 proxy pending)
-Last activity: 2026-07-08 -- Phase 01 plan 01-05 (sentinel three-layer defense) complete
-Progress: [▓░░░░░░░░░] 14%
+Plan: 2 of 7 (skeleton + sentinel merged; 01-03 compose + 01-04 proxy executors running)
+Status: Wave 2 in flight — 01-05 done; awaiting 01-03 + 01-04 completion notifications
+Last activity: 2026-07-08 -- Phase 01 plan 01-05 (sentinel three-layer defense) merged to main
+Progress: [▓▓░░░░░░░░] 29%
 
 ## Performance Metrics
 
@@ -58,7 +58,7 @@ Progress: [▓░░░░░░░░░] 14%
 | Wave | Plans | Status |
 |------|-------|--------|
 | 1 | 01-01 skeleton | merged |
-| 2 | 01-03 compose, 01-04 proxy, 01-05 sentinel | 01-05 complete on `phase-1/01-05-sentinel` (3 commits); 01-03, 01-04 pending |
+| 2 | 01-03 compose, 01-04 proxy, 01-05 sentinel | 01-05 merged (4 commits, +814 LOC); 01-03 + 01-04 executors running |
 | 3 | 01-06 health gate, 01-07 README+tests | queued |
 | 4 | 01-02 provision (RunPod boot) | queued (sleeps 45s before MCP) |
 
