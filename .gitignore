@@ -30,3 +30,75 @@ terraform.tfvars
 
 # Plan 01-02: generated runtime env files
 configs/runtime*.env
+suggestions/
+
+# Planning & documentation (no planning files in public repo)
+.planning/
+MASTER_EXECUTION_PROMPT_CLAUDE.md
+*_Prompt*.md
+*_Brief*.md
+*_Spec*.md
+WRITEUP.md
+Anthropic_Candidacy_Playbook.md
+Staff_Level_Projects_Spec_July2026.md
+CLAUDE.md
+IMPLEMENTATION_BRIEF.md
+GoodputLab_Inference_Implementation_Brief.md
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Test coverage
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.venv
+ENV/
+env/
