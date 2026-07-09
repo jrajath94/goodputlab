@@ -1,21 +1,12 @@
-# GoodputLab — SLO-Aware Disaggregated LLM Serving
+# GoodputLab
 
-Control plane for separated prefill and decode workers with cache-aware routing, admission control, and autoscaling.
+Control plane for disaggregated LLM serving: separated prefill and decode workers with cache-aware routing, admission control, and autoscaling.
 
-Goodput = completed-SLO-meeting requests/sec
+Goodput here means completed requests per second that meet their SLO, as opposed to raw throughput.
 
 ## Status
 
-🏗️ Phase 1: Topologies (disagg, colocated, chunked, tiered) - in progress
-
-## Quick Links
-
-- [Implementation Brief](../_briefings/GoodputLab_Inference_Implementation_Brief.md)
-- [Session Protocol](CLAUDE.md)
-
-## Build Status
-
-CI/tests not yet configured.
+Early stage. Phase 1 (serving topologies: disaggregated, colocated, chunked, tiered) is in progress. CI and tests are not set up yet.
 
 ## License
 
