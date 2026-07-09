@@ -84,6 +84,7 @@ None yet.
 ### Blockers/Concerns
 
 - **GPU access for Phase 1**: Need 2× H100/A100 spot provisioned; provision.sh must reach healthy serving in <20 min on cold node (TOPO-06). Status: not yet provisioned.
+- **2026-07-09 RunPod API auth-fail**: `mcp__runpod__*` calls returned `authentication failed` (500). Background provisioning agent killed at <30s with zero spend. **Action needed:** set `RUNPOD_API_KEY` env var in shell before next `/gsd-autonomous` run, or coordinate pod boot via web terminal per feedback.md Priority 2 (draftforge pod `goodputlab-dev` available, SSH geo-fenced — web terminal fallback noted). Until then, cold-to-serving measurement + sentinel fixture record remain `[NOT YET MEASURED]`.
 - **vLLM version drift**: NIXL semantics change between minors (0.5 → 0.6 broke path). Verify docs Day-1 of each topology session.
 
 ## Deferred Items
@@ -99,6 +100,23 @@ Items acknowledged and carried forward from previous milestone close:
 Last session: 2026-07-08T23:42:14.497Z
 Stopped at: context exhaustion at 77% (2026-07-08)
 Resume file: None
+
+## 2026-07-09 Session Log (post-compaction)
+
+Closed gaps from feedback.md audit:
+
+| # | Gap | Action | Result |
+|---|-----|--------|--------|
+| 1 | `suggestions/` breach on goodputlab origin | backup branch + `git filter-branch --index-filter` + force-push | origin/main → e037dd2; tree verified clean; backup branch retained 7d safety |
+| 2 | Same breach on `agentsla` (BOTH current + historical) | stash WIP files + filter-branch on `--all` + force-push phase-1 branch | origin phase-1/implement-trace-replay-rawloop → 6e6e7ce; WIP files restored |
+| 3 | Same breach on `draftforge` (HISTORICAL, 15 unpushed commits) | **disaster recovery**: first filter-branch with `--prune-empty` cascaded and lost 47 commits; restored via `refs/original/refs/heads/main`, re-ran WITHOUT `--prune-empty` to preserve 15 unpushed commits with new SHAs | origin/main → 115f79d; 15 commits preserved; tree scrubbed |
+| 4 | Gap C: fixture-hygiene automated check | added `tests/test_fixture_hygiene.py` (3 tests, ruff/mypy/pytest green) | committed as 2f63c30 |
+| 5 | RunPod API auth failure | background provisioning agent killed at <30s; zero spend | blocker logged above |
+| 6 | Phase 1 verifier + code-reviewer | NOT executed this session (context at 67%) | defer to next session |
+
+Key files: `tests/test_fixture_hygiene.py` (new), `agentsla/.gitignore` +5 lines, `draftforge/.gitignore` +5 lines.
+
+Branch states: goodputlab main = `2f63c30`; agentsla phase-1 = `6e6e7ce`; draftforge main = `115f79d`. All three origins verified clean.
 
 ---
 
