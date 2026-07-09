@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 Wave 3 dispatching — 01-06 health gate + 01-07 README+tests
-last_updated: "2026-07-09T01:10:00Z"
-last_activity: 2026-07-08 -- Phase 01 plans 01-03 + 01-04 merged via ff-merge + cherry-pick (retry executors)
+stopped_at: Phase 1 — 6/7 plans merged; 01-02 deferred; dispatching gsd-verifier
+last_updated: "2026-07-09T01:30:00Z"
+last_activity: 2026-07-08 -- Phase 01 plans 01-06 + 01-07 merged via cherry-pick (cross-branch contamination handled surgically)
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 7
-  completed_plans: 4
-  percent: 57
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/research/PITFALLS.md (12 pitfalls, phase-mapped)
 ## Current Position
 
 Phase: 1 of 8 (Topologies)
-Plan: 4 of 7 (skeleton, sentinel, compose, proxy merged; 01-06 health + 01-07 README dispatching)
-Status: Wave 3 in flight — 01-06 + 01-07 retry executors running
-Last activity: 2026-07-08 -- Phase 01 plans 01-03 + 01-04 merged via ff-merge + cherry-pick
-Progress: [▓▓▓▓▓░░░░░] 57%
+Plan: 6 of 7 (01-01, 01-03, 01-04, 01-05, 01-06, 01-07 merged; 01-02 deferred for RunPod)
+Status: All in-scope plans landed; verification next
+Last activity: 2026-07-08 -- Phase 01 plans 01-06 + 01-07 merged via cherry-pick
+Progress: [▓▓▓▓▓▓▓▓░░] 86%
 
 ## Performance Metrics
 
@@ -58,9 +58,9 @@ Progress: [▓▓▓▓▓░░░░░] 57%
 | Wave | Plans | Status |
 |------|-------|--------|
 | 1 | 01-01 skeleton | merged |
-| 2 | 01-03 compose, 01-04 proxy, 01-05 sentinel | all merged (compose 4 commits via ff; proxy 3 via cherry-pick after dropping duplicate LMCache + out-of-scope README) |
-| 3 | 01-06 health gate, 01-07 README+tests | dispatching |
-| 4 | 01-02 provision (RunPod boot) | queued (sleeps 45s before MCP) |
+| 2 | 01-03 compose, 01-04 proxy, 01-05 sentinel | all merged |
+| 3 | 01-06 health gate, 01-07 README+tests | both merged (cross-branch contamination handled via surgical cherry-pick) |
+| 4 | 01-02 provision (RunPod boot) | DEFERRED (RunPod cost discipline; user will start pod when ready) |
 
 *Updated after each plan completion*
 
