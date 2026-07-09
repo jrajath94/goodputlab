@@ -8,7 +8,7 @@ license = { text = "MIT" }
 authors = [{ name = "GoodputLab" }]
 dependencies = [
   "pydantic>=2.7,<3",
-  "fastapi>=0.115,<0.116",
+  "fastapi>=0.115,<0.140",
   "uvicorn>=0.32,<0.33",
   "requests>=2.32,<3",
   "httpx>=0.27,<0.28",
