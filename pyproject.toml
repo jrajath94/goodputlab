@@ -54,4 +54,4 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q --cov=core --cov=control --cov-report=term-missing"
+addopts = "-q --cov=core --cov=control --cov=loadgen --cov-report=term-missing"
