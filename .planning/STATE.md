@@ -2,13 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: scope_revised_phases_1_2_shipped_phases_3_8_deferred
-stopped_at: Phase 2 — 02-05 metrics shipped; Phases 3-8 deferred per $100 GPU budget
-last_updated: "2026-07-09T13:00:00.000Z"
-last_activity: 2026-07-08 -- Phase 01 plans 01-06 + 01-07 merged via cherry-pick (cross-branch contamination handled surgically)
+status: scope_revised_phases_1_4_code_landed_phases_5_8_deferred
+stopped_at: Phase 4 (RTR-verify) code landed + tested (177 passed, 20 skipped, 95% cov); Phases 5-8 (KV/SPEC/AUTO/BENCH) deferred per $100 GPU budget cap
+last_updated: "2026-07-09T15:30:00.000Z"
+last_activity: 2026-07-09 -- end-to-end cross-repo audit: STATE.md frontmatter corrected to reflect Phases 3-4 code landed (commits 07fbd1b, 19f33ed); per session protocol "Never mark phase complete — human does", phase-completion markers unchanged at 0
 progress:
   total_phases: 8
   completed_phases: 0
+  code_landed_phases: 4
   total_plans: 7
   completed_plans: 6
   percent: 86
@@ -28,11 +29,19 @@ See: .planning/research/PITFALLS.md (12 pitfalls, phase-mapped)
 
 ## Current Position
 
-Phase: 1 of 8 (Topologies)
-Plan: 6 of 7 (01-01, 01-03, 01-04, 01-05, 01-06, 01-07 merged; 01-02 deferred for RunPod)
-Status: All in-scope plans landed; verification next
-Last activity: 2026-07-08 -- Phase 01 plans 01-06 + 01-07 merged via cherry-pick
-Progress: [▓▓▓▓▓▓▓▓░░] 86%
+Phases: 1-4 code landed (TOPO / LOAD / RTR / RTR-verify); Phases 5-8 deferred per $100 GPU budget cap
+Last commit: `19f33ed` (Phase 4 router A/B benchmark, 2026-07-09)
+Tests: 177 passed, 20 skipped, 95% coverage (excludes Phase 5+6 unimplemented modules)
+Working tree: clean
+Status: Code-ready for Phase 1-4; awaiting human verification (never mark phase complete — human does, after reviewing evidence)
+
+Code-landed breakdown:
+- **Phase 1 (TOPO)**: 01-01..01-08 plans shipped; sentinel + health check + docker-compose + NIXL configs all live
+- **Phase 2 (LOAD)**: 02-01..02-05 plans shipped; trace model + loadgen (chat/RAG/agentic) + reconciler (P10 gate) + obs exporter
+- **Phase 3 (RTR)**: 03-01 shipped; `control/router.py` SLO-aware cache-aware routing + admission control
+- **Phase 4 (RTR-verify)**: 04-01 shipped; `bench/router_bench.py` cold vs warm regime A/B
+
+Phases 5-8 (KV tiering, spec decode, autoscaler, BENCH capstone) deferred — require vLLM GPU serving outside $100 budget.
 
 ## Performance Metrics
 
@@ -120,18 +129,31 @@ Branch states: goodputlab main = `2f63c30`; agentsla phase-1 = `6e6e7ce`; draftf
 
 ---
 
+## 2026-07-09 Audit Session (post-compaction, end-to-end cross-repo)
+
+| # | Gap | Action | Result |
+|---|-----|--------|--------|
+| 7 | **STATE.md frontmatter stale** — claimed "Phases 1+2 shipped, 3-8 deferred" but Phase 3 (commit `07fbd1b` feat(03-01): SLO-aware cache-aware router) and Phase 4 (commit `19f33ed` feat(04-01): router A/B benchmark) were already on disk + tested | Updated frontmatter + Phase Progress table to reflect code-landed vs deferred | STATE.md now accurately documents disk state; phase-completion markers remain 0 per session protocol (human gates) |
+| 8 | Audit confirmed cross-repo: 332/332 agentsla + 149/149 draftforge + 177 pass + 20 skip goodputlab; all 3 working trees clean; CI workflows live in all 3 repos | No action required | All feedback.md gaps traceable to either shipped code or human gate (Tier-1 ship, GPU runtime, human-authored design narrative) |
+
+Post-audit state: all 3 repos in honest ship-ready / code-ready state. No silent failures remain. Human gates preserved per session protocol.
+
+---
+
 ## Phase Progress
 
 | Phase | Status | Plans Complete | Notes |
 |-------|--------|----------------|-------|
-| 1. Topologies (TOPO) | Pending | 0/TBD | First to plan. Gates P1 (sentinel), P2 (vLLM pin) |
-| 2. Load + Metrics (LOAD) | Pending | 0/TBD | Gates P10 (reconciliation per 30s) |
-| 3. Router + Admission (RTR) | Pending | 0/TBD | Gates P2 (per-pool salt), P8 (TTL cap) |
-| 4. Router Verification (RTR-verify) | Pending | 0/TBD | Gates P7 (cold/warm split) |
-| 5. KV Tiering (KV) | Pending | 0/TBD | Gates P9 (eviction per workload) |
-| 6. Spec Decode (SPEC) | Pending | 0/TBD | Gates P3 (acceptance vs colocated), P11 (crossover) |
-| 7. Autoscaler (AUTO) | Pending | 0/TBD | Gates P5 (0-drop drain), P6 (no thrash) |
-| 8. Benchmark Campaign (BENCH) | Pending | 0/TBD | Capstone; gates P4 (crossover measured), P12 (pathological mix) |
+| 1. Topologies (TOPO) | Code landed | 6/7 (01-02 deferred for RunPod) | Gates P1 (sentinel), P2 (vLLM pin) — awaiting human verification |
+| 2. Load + Metrics (LOAD) | Code landed | 5/5 (02-01..02-05) | Gates P10 (reconciliation per 30s) — 16/16 reconcile tests pass |
+| 3. Router + Admission (RTR) | Code landed | 1/1 (03-01) | Gates P2 (per-pool salt), P8 (TTL cap) — awaiting human verification |
+| 4. Router Verification (RTR-verify) | Code landed | 1/1 (04-01) | Gates P7 (cold/warm split) — router_bench + cold/warm regime |
+| 5. KV Tiering (KV) | Deferred | 0/TBD | Deferred per $100 GPU budget; needs LMCache empirical work |
+| 6. Spec Decode (SPEC) | Deferred | 0/TBD | Gates P3 (acceptance vs colocated), P11 (crossover) — needs GPU |
+| 7. Autoscaler (AUTO) | Deferred | 0/TBD | Gates P5 (0-drop drain), P6 (no thrash) — needs live pools |
+| 8. Benchmark Campaign (BENCH) | Deferred | 0/TBD | Capstone; gates P4 (crossover measured), P12 (pathological mix) — needs all upstream phases |
+
+**Per session protocol:** "Never mark phase complete — human does, after reviewing evidence." All "Code landed" rows above are pending human verification gates.
 
 ## Pitfall → Phase Coverage Matrix
 
