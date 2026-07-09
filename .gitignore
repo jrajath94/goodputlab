@@ -43,3 +43,4 @@ Staff_Level_Projects_Spec_*.md
 IMPLEMENTATION_BRIEF.md
 AgentSLA_Implementation_Brief.md
 EXECUTION_PROMPT.md
+.venv/
