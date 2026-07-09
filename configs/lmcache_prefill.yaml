@@ -1,0 +1,8 @@
+# LMCache prefiller (PD sender) — TOPO-04 disagg-tier
+# Phase 1 tier connectivity only. Prewarming/eviction policy deferred to Phase 5.
+enable_pd: true
+transfer_channel: "nixl"
+pd_role: "sender"
+local_cpu: false
+pd_buffer_device: "cuda"
+pd_buffer_size: 1073741824

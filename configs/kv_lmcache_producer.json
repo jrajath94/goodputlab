@@ -1,0 +1,9 @@
+{
+  "kv_connector": "LMCacheConnectorV1",
+  "kv_role": "kv_producer",
+  "kv_buffer_device": "cuda",
+  "kv_load_failure_policy": "fail",
+  "kv_connector_extra_config": {
+    "backends": ["UCX"]
+  }
+}
