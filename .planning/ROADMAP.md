@@ -42,7 +42,7 @@ Plans:
 
 - [ ] 01-03-PLAN.md — Single docker-compose file with four topology profiles and UCX/LMCache configs
 - [ ] 01-04-PLAN.md — OpenAI-compatible disaggregated proxy for P/D profiles
-- [ ] 01-05-PLAN.md — Three-layer sentinel-token validity validator and daemon
+- [x] 01-05-PLAN.md — Three-layer sentinel-token validity validator and daemon
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -178,7 +178,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Topologies (TOPO) | 0/TBD | Not started | - |
+| 1. Topologies (TOPO) | 1/TBD | In Progress | 01-05 |
 | 2. Load + Metrics (LOAD) | 0/TBD | Not started | - |
 | 3. Router + Admission (RTR) | 0/TBD | Not started | - |
 | 4. Router Verification (RTR-verify) | 0/TBD | Not started | - |

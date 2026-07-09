@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 in flight (01-01 merged to main; Wave 2 dispatching)
-last_updated: "2026-07-09T00:05:00Z"
-last_activity: 2026-07-08 -- Phase 01 plan 01-01 (skeleton) merged to main
+stopped_at: Phase 1 in flight (01-01 merged to main; Wave 2 partial — 01-05 sentinel complete on phase-1/01-05-sentinel branch)
+last_updated: "2026-07-09T00:21:31Z"
+last_activity: 2026-07-08 -- Phase 01 plan 01-05 (sentinel three-layer defense) complete on branch phase-1/01-05-sentinel
 progress:
   total_phases: 8
   completed_phases: 0
@@ -29,9 +29,9 @@ See: .planning/research/PITFALLS.md (12 pitfalls, phase-mapped)
 ## Current Position
 
 Phase: 1 of 8 (Topologies)
-Plan: 1 of 7 (skeleton complete; 01-03/01-04/01-05 next in Wave 2)
-Status: Executing Wave 2 (3 parallel: compose, proxy, sentinel)
-Last activity: 2026-07-08 -- Phase 01 plan 01-01 (skeleton) merged to main
+Plan: 1 of 7 (skeleton complete; 01-05 sentinel complete on phase-1/01-05-sentinel branch)
+Status: Wave 2 in flight (01-05 sentinel merged to branch; 01-03 compose and 01-04 proxy pending)
+Last activity: 2026-07-08 -- Phase 01 plan 01-05 (sentinel three-layer defense) complete
 Progress: [▓░░░░░░░░░] 14%
 
 ## Performance Metrics
@@ -58,7 +58,7 @@ Progress: [▓░░░░░░░░░] 14%
 | Wave | Plans | Status |
 |------|-------|--------|
 | 1 | 01-01 skeleton | merged |
-| 2 | 01-03 compose, 01-04 proxy, 01-05 sentinel | dispatching |
+| 2 | 01-03 compose, 01-04 proxy, 01-05 sentinel | 01-05 complete on `phase-1/01-05-sentinel` (3 commits); 01-03, 01-04 pending |
 | 3 | 01-06 health gate, 01-07 README+tests | queued |
 | 4 | 01-02 provision (RunPod boot) | queued (sleeps 45s before MCP) |
 
@@ -73,6 +73,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - **Roadmap scope (2026-07-08)**: 8 phases (TOPO / LOAD / RTR / RTR-verify / KV / SPEC / AUTO / BENCH) match REQUIREMENTS.md traceability; capstone BENCH merges OBS + REPRO; granularity = standard per config.json
 - **Stack lock-in (from research)**: vLLM v0.11.x pinned; NIXL 0.6.x over UCX (not LIBFABRIC); LMCache 0.3.x per-SLO namespaces; EAGLE-3 head from HF; FastAPI/Pydantic v2
 - **Sentinel test (P1 mitigation)**: every disagg hop must validate transferred KV via known-token first-logit comparison, not just `kv_transfer_complete_count` increment
+- **Sentinel daemon subprocess model (01-05)**: daemon invokes `tests/sentinel.py --mode check` via subprocess (single source of truth for the comparison logic), rather than re-implementing or importing — keeps sentinel CLI and daemon in lockstep.
+- **Sentinel metrics port (01-05)**: daemon exposes `/metrics` on port 9108 (default), not 9101, to avoid colliding with the vLLM engine `/metrics` endpoint on the same pod.
+- **Sentinel fixture filename (01-05)**: derived from served-model-name + vllm_version + prompt_sha256 (16-hex); re-record required on any prompt or model/version change (PITFALLS P6 mitigation).
 
 ### Pending Todos
 
