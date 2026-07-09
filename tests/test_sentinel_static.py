@@ -56,7 +56,9 @@ def test_sentinel_defaults_are_explicit() -> None:
     """Default values must be deterministic and explicit (plan 01-05 acceptance)."""
     src = _read_sentinel_source()
     # Default served-model-name pinned to `goodputlab-model`.
-    assert "goodputlab-model" in src, "sentinel default served-model-name must be `goodputlab-model`"
+    assert "goodputlab-model" in src, (
+        "sentinel default served-model-name must be `goodputlab-model`"
+    )
     # Default fixture-dir is tests/_fixtures.
     assert "tests/_fixtures" in src, "sentinel default fixture-dir must be tests/_fixtures"
     # Default max-tokens = 50 (greedy bounded output).
