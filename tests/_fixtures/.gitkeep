@@ -1,0 +1,5 @@
+# Placeholder so tests/_fixtures is tracked in git.
+# Real sentinel fixtures are generated only by:
+#   python3 tests/sentinel.py --mode record --base-url <trusted-topology>
+# Recorded tokens/logprobs are [NOT YET MEASURED] until captured from a
+# colocated trusted run on the RunPod H100 NVL pod.
