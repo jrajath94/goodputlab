@@ -30,3 +30,16 @@ terraform.tfvars
 
 # Plan 01-02: generated runtime env files
 configs/runtime*.env
+
+# Candidacy framing files — never publish. Per suggestions/PORTFOLIO.md
+# convention, every repo keeps portfolio monitor notes and execution
+# queues locally under suggestions/ (gitignored).
+suggestions/
+*.candidacy.md
+*candidacy_playbook*
+Anthropic_Candidacy_Playbook.md
+MASTER_EXECUTION_PROMPT_CLAUDE.md
+Staff_Level_Projects_Spec_*.md
+IMPLEMENTATION_BRIEF.md
+AgentSLA_Implementation_Brief.md
+EXECUTION_PROMPT.md
