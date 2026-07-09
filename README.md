@@ -1,5 +1,10 @@
 # GoodputLab
 
+[![CI](https://github.com/jrajath94/goodputlab/actions/workflows/ci.yml/badge.svg)](https://github.com/jrajath94/goodputlab/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jrajath94/goodputlab/branch/main/graph/badge.svg)](https://codecov.io/gh/jrajath94/goodputlab)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 SLO-aware control plane for disaggregated prefill and decode LLM serving, with cache-aware routing, admission control, and autoscaling — measured end-to-end on a RunPod H100 NVL pod.
 
 ## Status
