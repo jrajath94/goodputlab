@@ -97,3 +97,27 @@ jobs:
             exit 1
           fi
           printf 'all commit subjects OK\n'
+
+  sentinel-gate:
+    name: Sentinel integration gate (NIXL safety)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify sentinel CLI exists
+        run: test -f tests/sentinel.py
+      - name: Verify sentinel daemon exists
+        run: test -f scripts/sentinel_daemon.py
+      - name: Verify health.sh calls _run_sentinel
+        run: |
+          set -euo pipefail
+          grep -q "_run_sentinel" scripts/health.sh || \
+            (echo "::error::health.sh missing _run_sentinel" && exit 1)
+          grep -q "sentinel-token" scripts/health.sh || \
+            (echo "::error::health.sh missing sentinel-token step" && exit 1)
+      - name: Verify UCX-only NIXL pin in configs
+        run: |
+          set -euo pipefail
+          # D-05: UCX transport required, LIBFABRIC forbidden (vllm #27055)
+          grep -riq "UCX" configs/kv_producer.json configs/kv_consumer.json 2>/dev/null || \
+            (echo "::error::NIXL transport not pinned to UCX in configs/" && exit 1)
+          echo "NIXL UCX pin OK"
