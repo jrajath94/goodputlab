@@ -138,8 +138,10 @@ services:
   disagg-proxy:
     profiles: ["disagg"]
     image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.11.2}
+    environment:
+      SENTINEL_FIRST_TOKEN: ${SENTINEL_FIRST_TOKEN:-}
     command: >-
-      python /scripts/disagg_proxy.py
+      sh -c "exec python /scripts/disagg_proxy.py
       --host 0.0.0.0
       --port 9100
       --prefiller-host vllm-disagg-prefill
@@ -147,6 +149,7 @@ services:
       --decoder-host vllm-disagg-decode
       --decoder-port 8200
       --served-model-name goodputlab-model
+      --assert-first-token-matches \"$$SENTINEL_FIRST_TOKEN\""
     volumes:
       - ./scripts:/scripts:ro
     ports:
@@ -204,8 +207,10 @@ services:
   disagg-tier-proxy:
     profiles: ["disagg-tier"]
     image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.11.2}
+    environment:
+      SENTINEL_FIRST_TOKEN: ${SENTINEL_FIRST_TOKEN:-}
     command: >-
-      python /scripts/disagg_proxy.py
+      sh -c "exec python /scripts/disagg_proxy.py
       --host 0.0.0.0
       --port 9100
       --prefiller-host vllm-disagg-tier-prefill
@@ -213,6 +218,7 @@ services:
       --decoder-host vllm-disagg-tier-decode
       --decoder-port 8200
       --served-model-name goodputlab-model
+      --assert-first-token-matches \"$$SENTINEL_FIRST_TOKEN\""
     volumes:
       - ./scripts:/scripts:ro
     ports:

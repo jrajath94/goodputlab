@@ -250,9 +250,15 @@ def build_app(args: argparse.Namespace) -> FastAPI:
         return prefill_body
 
     def _maybe_assert_first_token(
-        request: Request, decode_resp_text: str
+        request: Request, decode_resp_text: str, path: str
     ) -> None:
-        """Compare decode response first token to the configured sentinel."""
+        """Compare decode response first token to the configured sentinel.
+
+        Detects response shape from the request path: chat completions use
+        ``choices[0].message.content``; legacy completions use
+        ``choices[0].text``. If neither populates (or parse fails), log a
+        warning and skip — never crash probe traffic.
+        """
         expected: str = request.app.state.assert_first_token
         if not expected:
             return
@@ -260,20 +266,38 @@ def build_app(args: argparse.Namespace) -> FastAPI:
             import json
 
             payload = json.loads(decode_resp_text)
-            first_token = (
-                payload.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "")
-            )
+            choices = payload.get("choices") or []
+            if not choices:
+                logger.warning(
+                    "sentinel compare skipped: response has no choices (path=%s)",
+                    path,
+                )
+                return
+            first_choice = choices[0]
+            if "/chat/completions" in path:
+                first_token = (
+                    first_choice.get("message", {}).get("content", "") or ""
+                )
+            else:
+                # /v1/completions (legacy) — canonical schema is `text`.
+                first_token = first_choice.get("text", "") or ""
             if first_token and not first_token.startswith(expected):
                 logger.warning(
                     "SENTINEL MISMATCH: first token %r does not match %r",
                     first_token[:32],
                     expected,
                 )
-        except (ValueError, KeyError, IndexError):
+            elif not first_token:
+                logger.warning(
+                    "sentinel compare skipped: first choice had no "
+                    "extractable token (path=%s)",
+                    path,
+                )
+        except (ValueError, KeyError, IndexError) as exc:
             # Probe traffic parsing failed; do not crash.
-            logger.debug("sentinel compare skipped: could not parse decode resp")
+            logger.debug(
+                "sentinel compare skipped: could not parse decode resp: %s", exc
+            )
 
     # -----------------------------------------------------------------------
     # Routes — common endpoint contract (D-05)
@@ -316,7 +340,7 @@ def build_app(args: argparse.Namespace) -> FastAPI:
             headers={"X-Request-Id": request_id},
             timeout=DEFAULT_DECODE_TIMEOUT_S,
         )
-        _maybe_assert_first_token(request, decode_resp.text)
+        _maybe_assert_first_token(request, decode_resp.text, "/v1/chat/completions")
         return Response(
             content=decode_resp.content,
             status_code=decode_resp.status_code,
@@ -359,7 +383,7 @@ def build_app(args: argparse.Namespace) -> FastAPI:
             headers={"X-Request-Id": request_id},
             timeout=DEFAULT_DECODE_TIMEOUT_S,
         )
-        _maybe_assert_first_token(request, decode_resp.text)
+        _maybe_assert_first_token(request, decode_resp.text, "/v1/completions")
         return Response(
             content=decode_resp.content,
             status_code=decode_resp.status_code,
@@ -368,28 +392,41 @@ def build_app(args: argparse.Namespace) -> FastAPI:
         )
 
     @app.get("/v1/models")
-    async def models(request: Request) -> JSONResponse:
-        """Proxy the decode model list. Preserves `goodputlab-model` identity."""
+    async def models(request: Request) -> Response:
+        """Proxy the decode model list. Preserves `goodputlab-model` identity.
+
+        On upstream non-2xx or timeout, return 502 with a JSON body naming the
+        failed pool. Never fabricate a 200 response — that masks decode-pool
+        outages from the health gate and load balancer (PITFALLS P5).
+        """
         client: httpx.AsyncClient = request.app.state.http_client
         decode_url = request.app.state.decode_url
-        upstream = await client.get(
-            f"{decode_url}/v1/models",
-            timeout=HEALTH_TIMEOUT_S,
-        )
-        if upstream.status_code != 200:
-            # Fall back to a stub from CLI args so health checks still see
-            # the served-model-name (P5 healthcheck anti-pattern).
+        try:
+            upstream = await client.get(
+                f"{decode_url}/v1/models",
+                timeout=HEALTH_TIMEOUT_S,
+            )
+        except httpx.HTTPError as exc:
+            logger.warning("decode pool /v1/models probe failed: %s", exc)
             return JSONResponse(
-                {
-                    "object": "list",
-                    "data": [
-                        {
-                            "id": request.app.state.served_model_name,
-                            "object": "model",
-                            "owned_by": "goodputlab",
-                        }
-                    ],
-                }
+                content={
+                    "error": "upstream_unavailable",
+                    "pool": "decode",
+                    "detail": str(exc),
+                },
+                status_code=502,
+            )
+        if upstream.status_code >= 400:
+            logger.warning(
+                "decode pool /v1/models returned status=%d", upstream.status_code
+            )
+            return JSONResponse(
+                content={
+                    "error": "upstream_error",
+                    "pool": "decode",
+                    "status": upstream.status_code,
+                },
+                status_code=502,
             )
         return JSONResponse(content=upstream.json())
 
