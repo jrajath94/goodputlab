@@ -23,9 +23,10 @@ compose-config:
 	docker compose --profile disagg config >/dev/null
 	docker compose --profile disagg-tier config >/dev/null
 
-# Stub for plan 01-02. Real implementation lives in the next plan.
+# Phase 1 plan 01-02: idempotent RunPod boot with 1200s budget gate (TOPO-06).
+# Execution requires a live GPU pod; not run in CI.
 provision:
-	@echo "see 01-02 (provision.sh ships with the next plan)"
+	bash provision.sh
 
 # Topology bring-up (plan 01-03 ships the docker-compose.yml).
 up-colocated:
