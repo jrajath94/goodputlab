@@ -1,0 +1,57 @@
+[project]
+name = "goodputlab"
+version = "0.1.0"
+description = "SLO-aware disaggregated LLM serving control plane"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "GoodputLab" }]
+dependencies = [
+  "pydantic>=2.7,<3",
+  "fastapi>=0.115,<0.116",
+  "uvicorn>=0.32,<0.33",
+  "requests>=2.32,<3",
+  "httpx>=0.27,<0.28",
+  "prometheus-client>=0.21,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<10",
+  "pytest-cov>=6,<7",
+  "ruff>=0.6,<1",
+  "mypy>=1.10,<2",
+  "types-requests>=2.32,<3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["core", "control"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = ["."]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["scripts.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --cov=core --cov=control --cov-report=term-missing"
