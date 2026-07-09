@@ -1,0 +1,225 @@
+# GoodputLab Phase 1 — 4 Topology Profiles
+#
+# Single docker-compose file, profiles-based dispatch:
+#   colocated       → vllm-colocated           (18000:8000)
+#   chunked         → vllm-chunked             (18001:8000)
+#   disagg          → vllm-disagg-prefill + vllm-disagg-decode + disagg-proxy
+#                                          (19100:9100 on proxy)
+#   disagg-tier     → vllm-disagg-tier-prefill + vllm-disagg-tier-decode +
+#                     disagg-tier-proxy        (19200:9100 on proxy)
+#
+# Hard constraints (CLAUDE.md, 01-CONTEXT.md, PITFALLS P1):
+#   - NIXL backend = UCX ONLY (alternate backends excluded → vllm #27055 silent garbage)
+#   - LMCache PD transport = NIXL
+#   - Single vLLM image pin: vllm/vllm-openai:v0.11.2 (CVE-2025-25183 mitigation)
+#   - Served model name = goodputlab-model (D-05 common endpoint contract)
+#   - Healthcheck probes /v1/models + asserts goodputlab-model id
+#   - Disagg pool --gpu-memory-utilization 0.45 each (sum ≤ 0.90 on 1×H100)
+#   - Unique VLLM_NIXL_SIDE_CHANNEL_PORT per pool (5559 P / 5560 D)
+#   - UCX_TLS=cuda_ipc,cuda_copy,tcp (same-node GPU-direct)
+
+x-common-vllm: &common-vllm
+  image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.11.2}
+  runtime: nvidia
+  environment: &common-env
+    HF_HOME: /workspace/hf
+    HF_HUB_ENABLE_HF_TRANSFER: "1"
+    VLLM_NIXL_SIDE_CHANNEL_HOST: localhost
+    UCX_TLS: cuda_ipc,cuda_copy,tcp
+  volumes:
+    - /workspace/hf:/workspace/hf
+    - ./configs:/configs:ro
+    - ./scripts:/scripts:ro
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - capabilities: [gpu]
+            count: 1
+
+x-healthcheck-vllm: &healthcheck-vllm
+  test: ["CMD-SHELL", "curl -fs http://localhost:8000/v1/models | grep -q 'goodputlab-model'"]
+  interval: 30s
+  timeout: 10s
+  retries: 30
+  start_period: 240s
+
+x-healthcheck-proxy: &healthcheck-proxy
+  test: ["CMD-SHELL", "curl -fs http://localhost:9100/v1/models | grep -q 'goodputlab-model'"]
+  interval: 15s
+  timeout: 10s
+  retries: 60
+  start_period: 60s
+
+services:
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Profile 1: COLOCATED
+  # Single-process vLLM. No chunked-prefill. No kv-transfer.
+  # TOPO-01, D-04.
+  # ─────────────────────────────────────────────────────────────────────
+  vllm-colocated:
+    <<: *common-vllm
+    profiles: ["colocated"]
+    command: >-
+      vllm serve ${MODEL_ID:-Qwen/Qwen3.6-35B-A3B-FP8}
+      --host 0.0.0.0
+      --port 8000
+      --tensor-parallel-size 1
+      --gpu-memory-utilization 0.85
+      --block-size 128
+      --served-model-name ${SERVED_MODEL_NAME:-goodputlab-model}
+    ports:
+      - "18000:8000"
+    healthcheck: *healthcheck-vllm
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Profile 2: CHUNKED-PREFILL
+  # Single-process vLLM with chunked prefill enabled. No kv-transfer.
+  # TOPO-02, D-04.
+  # ─────────────────────────────────────────────────────────────────────
+  vllm-chunked:
+    <<: *common-vllm
+    profiles: ["chunked"]
+    command: >-
+      vllm serve ${MODEL_ID:-Qwen/Qwen3.6-35B-A3B-FP8}
+      --host 0.0.0.0
+      --port 8000
+      --tensor-parallel-size 1
+      --gpu-memory-utilization 0.85
+      --block-size 128
+      --enable-chunked-prefill
+      --max-num-batched-tokens 2048
+      --served-model-name ${SERVED_MODEL_NAME:-goodputlab-model}
+    ports:
+      - "18001:8000"
+    healthcheck: *healthcheck-vllm
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Profile 3: P/D DISAGG (NIXL UCX)
+  # Two vLLM processes: prefill (port 8100) + decode (port 8200),
+  # fronted by disagg proxy (port 9100). UCX-only NIXL transport.
+  # TOPO-03, TOPO-05, D-04.
+  # ─────────────────────────────────────────────────────────────────────
+  vllm-disagg-prefill:
+    <<: *common-vllm
+    profiles: ["disagg"]
+    command: >-
+      vllm serve ${MODEL_ID:-Qwen/Qwen3.6-35B-A3B-FP8}
+      --host 0.0.0.0
+      --port 8100
+      --tensor-parallel-size 1
+      --gpu-memory-utilization 0.45
+      --block-size 128
+      --kv-transfer-config /configs/kv_producer.json
+      --served-model-name ${SERVED_MODEL_NAME:-goodputlab-model}
+    environment:
+      <<: *common-env
+      VLLM_NIXL_SIDE_CHANNEL_PORT: "5559"
+    healthcheck: *healthcheck-vllm
+
+  vllm-disagg-decode:
+    <<: *common-vllm
+    profiles: ["disagg"]
+    command: >-
+      vllm serve ${MODEL_ID:-Qwen/Qwen3.6-35B-A3B-FP8}
+      --host 0.0.0.0
+      --port 8200
+      --tensor-parallel-size 1
+      --gpu-memory-utilization 0.45
+      --block-size 128
+      --kv-transfer-config /configs/kv_consumer.json
+      --served-model-name ${SERVED_MODEL_NAME:-goodputlab-model}
+    environment:
+      <<: *common-env
+      VLLM_NIXL_SIDE_CHANNEL_PORT: "5560"
+    healthcheck: *healthcheck-vllm
+
+  disagg-proxy:
+    profiles: ["disagg"]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.11.2}
+    command: >-
+      python /scripts/disagg_proxy.py
+      --host 0.0.0.0
+      --port 9100
+      --prefiller-host vllm-disagg-prefill
+      --prefiller-port 8100
+      --decoder-host vllm-disagg-decode
+      --decoder-port 8200
+      --served-model-name goodputlab-model
+    volumes:
+      - ./scripts:/scripts:ro
+    ports:
+      - "19100:9100"
+    depends_on:
+      vllm-disagg-prefill:
+        condition: service_healthy
+      vllm-disagg-decode:
+        condition: service_healthy
+    healthcheck: *healthcheck-proxy
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Profile 4: P/D DISAGG + LMCACHE TIERING
+  # Same shape as profile 3, but kv-transfer-config uses LMCacheConnectorV1
+  # and LMCACHE_CONFIG_FILE points each pool at the appropriate YAML.
+  # LMCache PD transport channel = NIXL.
+  # TOPO-04, D-04.
+  # ─────────────────────────────────────────────────────────────────────
+  vllm-disagg-tier-prefill:
+    <<: *common-vllm
+    profiles: ["disagg-tier"]
+    command: >-
+      vllm serve ${MODEL_ID:-Qwen/Qwen3.6-35B-A3B-FP8}
+      --host 0.0.0.0
+      --port 8100
+      --tensor-parallel-size 1
+      --gpu-memory-utilization 0.45
+      --block-size 128
+      --kv-transfer-config /configs/kv_lmcache_producer.json
+      --served-model-name ${SERVED_MODEL_NAME:-goodputlab-model}
+    environment:
+      <<: *common-env
+      VLLM_NIXL_SIDE_CHANNEL_PORT: "5559"
+      LMCACHE_CONFIG_FILE: /configs/lmcache_prefill.yaml
+    healthcheck: *healthcheck-vllm
+
+  vllm-disagg-tier-decode:
+    <<: *common-vllm
+    profiles: ["disagg-tier"]
+    command: >-
+      vllm serve ${MODEL_ID:-Qwen/Qwen3.6-35B-A3B-FP8}
+      --host 0.0.0.0
+      --port 8200
+      --tensor-parallel-size 1
+      --gpu-memory-utilization 0.45
+      --block-size 128
+      --kv-transfer-config /configs/kv_lmcache_consumer.json
+      --served-model-name ${SERVED_MODEL_NAME:-goodputlab-model}
+    environment:
+      <<: *common-env
+      VLLM_NIXL_SIDE_CHANNEL_PORT: "5560"
+      LMCACHE_CONFIG_FILE: /configs/lmcache_decode.yaml
+    healthcheck: *healthcheck-vllm
+
+  disagg-tier-proxy:
+    profiles: ["disagg-tier"]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.11.2}
+    command: >-
+      python /scripts/disagg_proxy.py
+      --host 0.0.0.0
+      --port 9100
+      --prefiller-host vllm-disagg-tier-prefill
+      --prefiller-port 8100
+      --decoder-host vllm-disagg-tier-decode
+      --decoder-port 8200
+      --served-model-name goodputlab-model
+    volumes:
+      - ./scripts:/scripts:ro
+    ports:
+      - "19200:9100"
+    depends_on:
+      vllm-disagg-tier-prefill:
+        condition: service_healthy
+      vllm-disagg-tier-decode:
+        condition: service_healthy
+    healthcheck: *healthcheck-proxy
