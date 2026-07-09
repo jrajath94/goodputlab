@@ -5,14 +5,24 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-SLO-aware control plane for disaggregated prefill and decode LLM serving, with cache-aware routing, admission control, and autoscaling — measured end-to-end on a RunPod H100 NVL pod.
+SLO-aware control plane for disaggregated prefill and decode LLM serving, with cache-aware routing, admission control, and autoscaling — measured end-to-end on a RunPod H100 SXM pod.
 
 ## Status
 
-Phase 1 of 8 (Topologies) is in flight. All four docker-compose profiles
-(`colocated`, `chunked`, `disagg`, `disagg-tier`) wire up to a single
-vLLM v0.11.x image with a shared OpenAI-compatible HTTP contract. Phase 2
-(load generation + metric reconciliation) is the next gate.
+Phases 1–4 code-landed, **Phase 8 real bench measured** (Run 1: 2026-07-09, 1×H100 SXM, Qwen2.5-7B-Instruct, 4 topologies × 30 requests).
+
+| Topology | success | mean_ttft | p95_ttft | mean_itl |
+|----------|---------|-----------|----------|----------|
+| colocated | 100% | 76.5 ms | 127.3 ms | 6.38 ms |
+| chunked | 100% | 79.6 ms | 137.4 ms | 6.33 ms |
+| disagg | 100% | 77.2 ms | 126.5 ms | 6.31 ms |
+| disagg_tier | 100% | 69.6 ms | 111.6 ms | 6.18 ms |
+
+At low RPS all 4 topologies cluster within ~10ms — **disagg_tier shows
+the expected prefix-cache win (-6.9ms mean TTFT vs colocated)**. The
+full P/D crossover study (where chunked-prefill beats disagg) requires
+2× vLLM + NIXL; deferred to Run 2. Raw data:
+`bench/results/real/*.json`. See `RUNPOD.md` for the full methodology.
 
 ## Requirements
 

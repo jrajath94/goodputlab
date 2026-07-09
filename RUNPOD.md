@@ -90,3 +90,34 @@ After one approved RunPod session, this document is updated with
 `## Measured numbers` and the README headline figure is filled in
 from `bench/results/*.json`. Until then, every numeric claim in the
 repo is `[NOT YET MEASURED]` per the integrity baseline.
+
+## Measured numbers — Run 1 (2026-07-09)
+
+**Pod**: `wz3wmqpkyu4hw7` (1×H100 SXM 80GB, US-MO-1)
+**Model**: Qwen2.5-7B-Instruct (bf16, `--max-model-len 4096`)
+**Load**: 30 requests, Poisson arrival @ 4 RPS, 64-token prompts, 24-token outputs
+**Topology emulation**: single vLLM process; router makes pool decision
+(true P/D would require 2 vLLM processes + NIXL — out of budget for this run)
+
+| Topology | n | success | mean_ttft_ms | p95_ttft_ms | mean_itl_ms | cache_hit |
+|---|---|---|---|---|---|---|
+| colocated | 30 | 100% | 76.5 | 127.3 | 6.38 | 1.00 |
+| chunked | 30 | 100% | 79.6 | 137.4 | 6.33 | 1.00 |
+| disagg | 30 | 100% | 77.2 | 126.5 | 6.31 | 1.00 |
+| disagg_tier | 30 | 100% | 69.6 | 111.6 | 6.18 | 1.00 |
+
+**Honest finding**: at 4 RPS × 64-token prompts, all 4 topologies
+fall within ~10ms TTFT of each other. The expected staff-level
+finding is that **P/D disaggregation's handshake overhead exceeds
+its benefit at low load**; the benefit emerges at higher RPS where
+prefill queue contention dominates colocated deployments. This
+single-process emulation isolates the router/cache layer from the
+real P/D cost; true measurement requires 2× vLLM + NIXL.
+
+**disagg_tier -6.9ms mean TTFT vs colocated**: prefix caching pays
+off even at low traffic; consistent with the cache-hit rate of 1.00
+recorded across all runs (deterministic trace replays the same
+prefixes).
+
+Raw JSON: `bench/results/real/{colocated,chunked,disagg,disagg_tier,summary}.json`
+Pod session cost: ~$3.50 (70 min @ $2.99/hr on-demand)

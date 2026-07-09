@@ -1,0 +1,15 @@
+{
+  "topology": "disagg_tier",
+  "n_requests": 30,
+  "success_rate": 1.0,
+  "mean_ttft_ms": 69.6226998,
+  "p95_ttft_ms": 111.63013925,
+  "mean_itl_ms": 6.209366930434783,
+  "cache_hit_rate": 1.0,
+  "reconcile_passes": true,
+  "notes": [
+    "real-vllm",
+    "base_url=http://localhost:8000/v1",
+    "model=/workspace/hf/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28"
+  ]
+}
