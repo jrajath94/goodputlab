@@ -45,7 +45,8 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-mypy_path = ["."]
+explicit_package_bases = true
+mypy_path = ["$MYPY_CONFIG_FILE_DIR"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

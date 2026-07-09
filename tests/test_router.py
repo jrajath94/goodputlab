@@ -218,6 +218,6 @@ def test_router_decision_tracks_role_change() -> None:
 
 def test_router_admission_policy_rejects_invalid_headroom() -> None:
     with pytest.raises(Exception):
-        AdmissionPolicy(headroom_pct=150.0)  # type: ignore[call-arg]
+        AdmissionPolicy(headroom_pct=150.0)
     with pytest.raises(Exception):
-        AdmissionPolicy(headroom_pct=-1.0)  # type: ignore[call-arg]
+        AdmissionPolicy(headroom_pct=-1.0)

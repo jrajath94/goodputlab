@@ -153,9 +153,9 @@ def test_tier_policy_rejects_chat_with_low_expected_hit() -> None:
 
 def test_tier_policy_rejects_invalid_thresholds() -> None:
     with pytest.raises(Exception):
-        TierPolicy(min_hit_rate=1.5)  # type: ignore[call-arg]
+        TierPolicy(min_hit_rate=1.5)
     with pytest.raises(Exception):
-        TierPolicy(min_capacity_free_pct=-1.0)  # type: ignore[call-arg]
+        TierPolicy(min_capacity_free_pct=-1.0)
 
 
 def test_tier_policy_reject_reason_returns_none_when_admitted() -> None:

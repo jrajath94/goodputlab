@@ -40,9 +40,9 @@ def test_p3_gate_allows_spec_in_colocated() -> None:
 
 def test_spec_policy_rejects_invalid_thresholds() -> None:
     with pytest.raises(Exception):
-        SpecPolicy(min_acceptance_rate=1.5)  # type: ignore[call-arg]
+        SpecPolicy(min_acceptance_rate=1.5)
     with pytest.raises(Exception):
-        SpecPolicy(min_window=0)  # type: ignore[call-arg]
+        SpecPolicy(min_window=0)
 
 
 # ---------- Decoder ----------
