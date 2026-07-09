@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 1 — 6/7 plans merged; 01-02 deferred; dispatching gsd-verifier
-last_updated: "2026-07-09T01:30:00Z"
+status: scope_revised_phases_1_2_shipped_phases_3_8_deferred
+stopped_at: Phase 2 — 02-05 metrics shipped; Phases 3-8 deferred per $100 GPU budget
+last_updated: "2026-07-09T13:00:00.000Z"
 last_activity: 2026-07-08 -- Phase 01 plans 01-06 + 01-07 merged via cherry-pick (cross-branch contamination handled surgically)
 progress:
   total_phases: 8
