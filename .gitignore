@@ -3,6 +3,8 @@ __pycache__/
 .pytest_cache/
 .coverage
 .mypy_cache/
+.ruff_cache/
+htmlcov/
 .vscode/
 .idea/
 *.swp
@@ -13,5 +15,18 @@ dist/
 build/
 *.egg-info/
 *.parquet
+.worktrees/
+secrets/
+*.key
+tests/_fixtures/*.json
 bench/results/*
 !bench/results/.gitkeep
+
+# Plan 01-01: protected secret filenames per PROJECT.md / USER CLAUDE.md
+openclaw.json
+whoop-token.json
+discord_bot_config.json
+terraform.tfvars
+
+# Plan 01-02: generated runtime env files
+configs/runtime*.env
