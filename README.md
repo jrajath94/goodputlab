@@ -4,6 +4,7 @@
 [![codecov](https://codecov.io/gh/jrajath94/goodputlab/branch/main/graph/badge.svg)](https://codecov.io/gh/jrajath94/goodputlab)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Release: v0.1.0](https://img.shields.io/badge/release-v0.1.0-blue)](https://github.com/jrajath94/goodputlab/releases/tag/v0.1.0)
 
 SLO-aware control plane for disaggregated prefill and decode LLM serving, with cache-aware routing, admission control, and autoscaling — measured end-to-end on a RunPod H100 SXM pod.
 
@@ -15,8 +16,8 @@ Phases 1–4 code-landed, **Phase 8 real bench measured** (Run 1: 2026-07-09, 1�
 |----------|---------|-----------|----------|----------|
 | colocated | 100% | 76.5 ms | 127.3 ms | 6.38 ms |
 | chunked | 100% | 79.6 ms | 137.4 ms | 6.33 ms |
-| disagg | 100% | 77.2 ms | 126.5 ms | 6.31 ms |
-| disagg_tier | 100% | 69.6 ms | 111.6 ms | 6.18 ms |
+| disagg | 100% | 77.2 ms | 126.5 ms | 6.32 ms |
+| disagg_tier | 100% | 69.6 ms | 111.6 ms | 6.21 ms |
 
 At low RPS all 4 topologies cluster within ~10ms — **disagg_tier shows
 the expected prefix-cache win (-6.9ms mean TTFT vs colocated)**. The
