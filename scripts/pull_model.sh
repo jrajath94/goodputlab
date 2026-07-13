@@ -19,7 +19,7 @@ set -euo pipefail
 VLLM_IMAGE=${VLLM_IMAGE:-vllm/vllm-openai:v0.11.2}
 HF_HOME=${HF_HOME:-/workspace/hf}
 HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
-PREFERRED_MODEL_ID=${PREFERRED_MODEL_ID:-Qwen/Qwen3.6-35B-A3B-FP8}
+PREFERRED_MODEL_ID=${PREFERRED_MODEL_ID:-Qwen/Qwen3-30B-A3B-Instruct-2507-FP8}
 FALLBACK_MODEL_ID=${FALLBACK_MODEL_ID:-Qwen/Qwen3-30B-A3B-Instruct-2507-FP8}
 
 # When --probe-only is passed, skip the download step (used by health probes
