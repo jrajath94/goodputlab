@@ -1,0 +1,7 @@
+{
+  "n_reports": 1,
+  "host": "local-m1-max",
+  "base_url": "http://localhost:11434/v1",
+  "model": "qwen3:8b",
+  "all_reconcile": true
+}

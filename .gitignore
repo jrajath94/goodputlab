@@ -22,6 +22,7 @@ tests/_fixtures/*.json
 bench/results/*
 !bench/results/.gitkeep
 !bench/results/real/
+!bench/results/ollama/
 
 # Plan 01-01: protected secret filenames per PROJECT.md / USER CLAUDE.md
 openclaw.json
