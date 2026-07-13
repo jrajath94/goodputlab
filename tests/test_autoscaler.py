@@ -137,3 +137,43 @@ def test_autoscaler_decision_rejects_extra_fields() -> None:
         AutoscalerDecision.model_validate(
             {"pool": "prefill", "delta": 0, "reason": "stable", "wat": "no"}
         )
+
+
+# ---------- Property tests — drain protocol (P3-3) ----------
+
+
+def test_drain_blocks_scale_down_under_sustained_inflight() -> None:
+    """Across many ticks with in_flight > 0, autoscaler never scales a pool
+    down — even when the queue has been empty for the entire run. This is
+    the load-bearing guarantee the drain protocol provides.
+    """
+    import random
+
+    random.seed(1729)
+    a = PoolAutoscaler({Pool.PREFILL: _ctrl(kp=2.0)})
+    topo = {Pool.PREFILL: PoolTopology(pool=Pool.PREFILL, replicas=4, target_queue_depth=10)}
+    in_flight_random = [random.randint(1, 8) for _ in range(50)]
+    for n in in_flight_random:
+        decisions = a.tick(topo, queue_depths={Pool.PREFILL: 0}, in_flight={Pool.PREFILL: n})
+        d = decisions[0]
+        assert d.delta >= 0, (
+            f"drain violation: in_flight={n}, got delta={d.delta} (reason={d.reason})"
+        )
+        assert d.reason == "drain_wait", f"expected drain_wait, got {d.reason}"
+
+
+def test_drain_fires_immediately_when_inflight_drops_to_zero() -> None:
+    """The moment in_flight reaches 0, the queued scale-down fires."""
+    a = PoolAutoscaler({Pool.PREFILL: _ctrl(kp=2.0)})
+    topo = {Pool.PREFILL: PoolTopology(pool=Pool.PREFILL, replicas=4, target_queue_depth=10)}
+    # 20 ticks with in_flight = 1 → drain_wait every time
+    for _ in range(20):
+        decisions = a.tick(topo, queue_depths={Pool.PREFILL: 0}, in_flight={Pool.PREFILL: 1})
+        assert decisions[0].delta == 0
+        assert decisions[0].reason == "drain_wait"
+    # Single tick with in_flight = 0 → drain fires
+    decisions = a.tick(topo, queue_depths={Pool.PREFILL: 0}, in_flight={Pool.PREFILL: 0})
+    d = decisions[0]
+    assert d.delta < 0
+    assert d.drained is True
+    assert d.reason == "queue_low"
