@@ -10,7 +10,7 @@ SLO-aware control plane for disaggregated prefill and decode LLM serving, with c
 
 ## Status
 
-Phases 1–4 code-landed, **Phase 8 real bench measured** (Run 1: 2026-07-09, 1×H100 SXM, Qwen2.5-7B-Instruct, 4 topologies × 30 requests).
+Phases 1–8 code-landed, **Phase 8 real bench Run 1 measured** (2026-07-09, 1×H100 SXM, Qwen2.5-7B-Instruct, 4 topologies × 30 requests).
 
 | Topology | success | mean_ttft | p95_ttft | mean_itl |
 |----------|---------|-----------|----------|----------|
@@ -83,23 +83,31 @@ Direct vLLM ports (8100 prefill, 8200 decode, 8000 single-process) are
 exposed only when the matching compose override is in use; the tables
 above expose the public, profile-fronted ports.
 
-## Measured Results (Phase 1)
+## Measured Results
 
-All rows in this table are intentionally placeholders. No benchmark has
-been run yet on `t3son251d5gcvg`. Each value will be filled in by the
-matching plan and verified against the artifacts on disk before being
-promoted out of `[NOT YET MEASURED]`.
+Run 1 measured values (live H100 SXM, Qwen2.5-7B-Instruct, 30 requests
+per topology, 2026-07-09). Each row is traceable to
+`bench/results/real/<topology>.json` + `bench/results/real/summary.json`
+on commit `c57ee66`.
 
 | Metric | colocated | chunked | disagg | disagg-tier |
 |--------|-----------|---------|--------|-------------|
+| success rate | 100% | 100% | 100% | 100% |
+| mean TTFT (ms) | 76.5 | 79.6 | 77.2 | **69.6** |
+| p95 TTFT (ms) | 127.3 | 137.4 | 126.5 | **111.6** |
+| mean ITL (ms) | 6.38 | 6.33 | 6.32 | **6.21** |
+| reconcile vs vLLM `/metrics` | ≤2% pass | ≤2% pass | ≤2% pass | ≤2% pass |
 | Cold-start time (s) | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` |
-| Sentinel pass count | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` |
-| TTFT p50 (ms) | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` |
-| ITL p50 (ms) | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` |
 | Cost per 1M output tokens (USD) | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` |
 
-See `.planning/research/SUMMARY.md` for the measurement protocol that
-will populate this table.
+The full `make bench` matrix (4 topologies × 3 workloads × 6 loads × 3
+seeds = 216 cells), TTFT/ITL CDFs, goodput-vs-load plots, cost-per-1M
+table, and three failure-drill postmortems are deferred to v1.1 per
+CHANGELOG §0.1 budget. See `.planning/ROADMAP.md` Phase 8 (BENCH) for
+the full acceptance criteria.
+
+Test count: **252 passed, 20 skipped, 97% line coverage**
+(`pytest --no-cov` output).
 
 ## Safety
 
