@@ -1,0 +1,5 @@
+topology,replicas,mean_ttft_ms,mean_itl_ms,cost_per_1m_output_tokens_usd
+colocated,1,76.53,6.38,4.61
+chunked,1,79.58,6.33,4.61
+disagg,2,77.24,6.32,9.21
+disagg_tier,2,69.62,6.21,9.21

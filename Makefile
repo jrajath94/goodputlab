@@ -5,7 +5,7 @@
 SHELL := /usr/bin/env bash
 
 # All targets are recipes (no file prerequisites at the top level).
-.PHONY: install-dev lint test compose-config provision up-colocated up-chunked up-disagg up-disagg-tier down health sentinel ollama-smoke
+.PHONY: install-dev lint test compose-config provision up-colocated up-chunked up-disagg up-disagg-tier down health sentinel ollama-smoke figures
 
 install-dev:
 	pip install -e ".[dev]"
@@ -62,3 +62,7 @@ ollama-smoke:
 	@curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1 || { \
 		echo "ollama not reachable on :11434 — start with: ollama serve"; exit 1; }
 	python3 -m bench.ollama_smoke --model qwen3:8b --n 8
+
+# P5-4 — generate figures + cost table from bench/results/real/*.json
+figures:
+	python3 -m bench.figures
