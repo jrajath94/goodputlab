@@ -5,7 +5,7 @@
 SHELL := /usr/bin/env bash
 
 # All targets are recipes (no file prerequisites at the top level).
-.PHONY: install-dev lint test compose-config provision up-colocated up-chunked up-disagg up-disagg-tier down health sentinel
+.PHONY: install-dev lint test compose-config provision up-colocated up-chunked up-disagg up-disagg-tier down health sentinel ollama-smoke
 
 install-dev:
 	pip install -e ".[dev]"
@@ -51,3 +51,14 @@ health:
 # Sentinel CLI ships with plan 01-05.
 sentinel:
 	python3 tests/sentinel.py --mode check --base-url http://localhost:19100/v1
+
+# P5-3 — local M1 Max smoke harness. Requires ollama on PATH and
+# `ollama serve` running on :11434. Pull qwen3:8b manually first:
+#   ollama pull qwen3:8b
+# The bench CLI fails with a clear message if the model is missing.
+ollama-smoke:
+	@command -v ollama >/dev/null 2>&1 || { \
+		echo "ollama not on PATH. Install: https://ollama.com/download"; exit 1; }
+	@curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1 || { \
+		echo "ollama not reachable on :11434 — start with: ollama serve"; exit 1; }
+	python3 -m bench.ollama_smoke --model qwen3:8b --n 8
