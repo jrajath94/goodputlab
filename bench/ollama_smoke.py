@@ -42,7 +42,7 @@ def _trace(
     prompt_tokens: int,
     output_tokens: int,
     seed: int,
-) -> "Trace":  # type: ignore[name-defined]  # noqa: F821
+) -> Trace:  # type: ignore[name-defined]  # noqa: F821
     from core.trace import (
         ArrivalConfig,
         RequestSpec,
@@ -126,7 +126,7 @@ async def _run(args: argparse.Namespace) -> int:
             OLLAMA_TOPOLOGY_LABEL,
             f"model={args.model}",
             f"base_url={args.base_url}",
-            f"host=local-m1-max",
+            "host=local-m1-max",
             f"platform={os.uname().sysname}",
             f"n={args.n}",
         ],
