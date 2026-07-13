@@ -75,24 +75,46 @@ PID excursion cannot double the fleet.
 When `queue_depth == target_queue_depth` and `in_flight == 0`, the
 controller returns `delta=0, reason="stable"`.
 
+### Min-dwell between flips
+
+A flip (`delta != 0`) is **only emitted if at least `min_dwell_s`
+seconds have elapsed since the previous flip on the same pool.** Within
+the dwell window, the controller returns `delta=0, reason="dwell_wait"`.
+
+Why: with `ki=0` and the drain protocol already blocking unsafe
+scale-downs, the remaining oscillation mode is *rapid scale-up followed
+by rapid scale-down* when the queue error alternates sign. A 120 s
+minimum dwell makes the autoscaler behave like a slow integral term
+without reintroducing integrator windup.
+
+Property tests in `tests/test_autoscaler.py`:
+
+- `test_min_dwell_blocks_rapid_flip_back` — within 30 s of a flip, a
+  reverse-flip is suppressed.
+- `test_min_dwell_fires_after_window_elapses` — at 119 s still blocked;
+  at 121 s fires.
+- `test_min_dwell_no_flip_means_no_cooldown` — 5 stable ticks do not
+  start a dwell window; the next flip fires freely.
+- `test_min_dwell_zero_disables_feature` — `min_dwell_s=0` is the
+  back-compat default for the existing test suite.
+- `test_min_dwell_property_alternating_queue` — under 600 s of
+  alternating queue depth (10 s tick), ≤ 6 flips total (vs 60 without
+  dwell).
+
+The clock is injectable (`clock=` kwarg) so tests are deterministic. The
+default is `time.monotonic` for live deployment.
+
 ## Planned, not yet enforced (v1.1)
 
-The README and the CHANGELOG describe a **120 s minimum dwell between
-flips** and a **1-5 s tick interval**. Neither is currently enforced by
-the controller — the README text is forward-looking.
+The README and the CHANGELOG describe a **1-5 s tick interval**.
+This is a convention enforced on the orchestrator side, not by the
+controller itself.
 
 | Item                          | Status     | Where it should land                  |
 |-------------------------------|------------|---------------------------------------|
-| 120 s minimum dwell           | not yet    | `PoolAutoscaler._last_flip_ts[pool]`  |
 | 1-5 s tick interval           | convention | orchestrator-side scheduler           |
 | Multi-pool cross-coupling     | not yet    | prefill/decode imbalance detection    |
 | Workload-shift scenario bench | not yet    | live GPU; v1.1                        |
-
-Without minimum dwell, the controller can theoretically flip a worker
-on consecutive ticks if the PID output stays saturated. In practice the
-PID integral decay and the replica floor/ceiling bound this, but the
-formal guarantee does not exist yet. Live tuning in v1.1 will measure
-oscillation frequency and pick the dwell.
 
 ## Default gains
 
@@ -143,16 +165,19 @@ These are conservative defaults:
   fires the first tick in_flight hits 0.
 - `test_autoscaler_caps_at_max_replicas` — clamp upper.
 - `test_autoscaler_floor_at_min_replicas` — clamp lower.
+- `test_min_dwell_blocks_rapid_flip_back` — within dwell, flip suppressed.
+- `test_min_dwell_fires_after_window_elapses` — boundary fires.
+- `test_min_dwell_no_flip_means_no_cooldown` — stable ticks don't start window.
+- `test_min_dwell_zero_disables_feature` — back-compat default.
+- `test_min_dwell_property_alternating_queue` — bounded oscillation count.
 
-These together assert the v0.1 invariants. v1.1 will add
-`test_min_dwell_between_flips` once the dwell timestamp is wired in.
+These together assert the v0.1.1 invariants.
 
 ## Failure modes the autoscaler must NOT introduce
 
 - **Flip a worker mid-request.** Covered by drain protocol.
 - **Double the fleet in one tick.** Covered by `step_size`.
-- **Flip a worker back and forth each tick.** Will be covered by
-  minimum dwell (v1.1).
+- **Flip a worker back and forth each tick.** Covered by min-dwell.
 - **Integrator windup after a long saturation.** Covered by
   anti-windup in `control/pid.py`.
 - **Scale down a healthy pool to zero.** Covered by `min_replicas >= 1`

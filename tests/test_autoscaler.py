@@ -139,6 +139,146 @@ def test_autoscaler_decision_rejects_extra_fields() -> None:
         )
 
 
+# ---------- Min-dwell tests (P3-1) ----------
+
+
+class _Clock:
+    """Tiny monotonic clock for min-dwell tests."""
+
+    def __init__(self, t0: float = 1000.0) -> None:
+        self.t = t0
+
+    def __call__(self) -> float:
+        return self.t
+
+    def advance(self, dt: float) -> None:
+        self.t += dt
+
+
+def test_min_dwell_blocks_rapid_flip_back() -> None:
+    """Within min_dwell_s of a flip, any further delta must be 0 (reason=dwell_wait).
+
+    Sequence: scale-up at t=0, then queue drops at t=30s (< 120s dwell).
+    Scale-down must be blocked.
+    """
+    clock = _Clock(1000.0)
+    a = PoolAutoscaler(
+        {Pool.PREFILL: _ctrl(kp=1.0)},
+        min_dwell_s=120.0,
+        clock=clock,
+    )
+    topo = {Pool.PREFILL: PoolTopology(pool=Pool.PREFILL, replicas=2, target_queue_depth=10)}
+
+    # t=0: queue high → scale up, fires
+    decisions = a.tick(topo, queue_depths={Pool.PREFILL: 30}, in_flight={Pool.PREFILL: 0})
+    d = decisions[0]
+    assert d.delta > 0
+    assert d.reason == "queue_high"
+
+    # t=30s (< 120s): queue low, would scale down, blocked by dwell
+    clock.advance(30.0)
+    decisions = a.tick(topo, queue_depths={Pool.PREFILL: 0}, in_flight={Pool.PREFILL: 0})
+    d = decisions[0]
+    assert d.delta == 0
+    assert d.reason == "dwell_wait"
+
+
+def test_min_dwell_fires_after_window_elapses() -> None:
+    """Once min_dwell_s has elapsed since last flip, scale-down proceeds."""
+    clock = _Clock(1000.0)
+    a = PoolAutoscaler(
+        {Pool.PREFILL: _ctrl(kp=1.0)},
+        min_dwell_s=120.0,
+        clock=clock,
+    )
+    topo = {Pool.PREFILL: PoolTopology(pool=Pool.PREFILL, replicas=2, target_queue_depth=10)}
+
+    # Flip at t=0
+    a.tick(topo, queue_depths={Pool.PREFILL: 30}, in_flight={Pool.PREFILL: 0})
+
+    # Just under dwell → still blocked
+    clock.advance(119.0)
+    decisions = a.tick(topo, queue_depths={Pool.PREFILL: 0}, in_flight={Pool.PREFILL: 0})
+    assert decisions[0].delta == 0
+    assert decisions[0].reason == "dwell_wait"
+
+    # Cross the dwell boundary → fires
+    clock.advance(2.0)
+    decisions = a.tick(topo, queue_depths={Pool.PREFILL: 0}, in_flight={Pool.PREFILL: 0})
+    d = decisions[0]
+    assert d.delta < 0
+    assert d.reason == "queue_low"
+
+
+def test_min_dwell_no_flip_means_no_cooldown() -> None:
+    """A tick that returns delta=0 does not start a dwell window."""
+    clock = _Clock(1000.0)
+    a = PoolAutoscaler(
+        {Pool.PREFILL: _ctrl(kp=1.0)},
+        min_dwell_s=120.0,
+        clock=clock,
+    )
+    topo = {Pool.PREFILL: PoolTopology(pool=Pool.PREFILL, replicas=2, target_queue_depth=10)}
+
+    # 5 stable ticks at target → delta=0 each, no dwell starts
+    for _ in range(5):
+        clock.advance(10.0)
+        decisions = a.tick(topo, queue_depths={Pool.PREFILL: 10}, in_flight={Pool.PREFILL: 0})
+        assert decisions[0].delta == 0
+        assert decisions[0].reason == "stable"
+
+    # Now a flip — should fire immediately, no dwell applies (last_flip_ts is None/0)
+    clock.advance(10.0)
+    decisions = a.tick(topo, queue_depths={Pool.PREFILL: 30}, in_flight={Pool.PREFILL: 0})
+    assert decisions[0].delta > 0
+    assert decisions[0].reason == "queue_high"
+
+
+def test_min_dwell_zero_disables_feature() -> None:
+    """min_dwell_s=0 disables the feature (default for tests)."""
+    a = PoolAutoscaler({Pool.PREFILL: _ctrl(kp=1.0)})  # default min_dwell_s=0
+    topo = {Pool.PREFILL: PoolTopology(pool=Pool.PREFILL, replicas=4, target_queue_depth=10)}
+
+    # Flip up
+    a.tick(topo, queue_depths={Pool.PREFILL: 30}, in_flight={Pool.PREFILL: 0})
+    # Immediately flip down — no dwell blocking
+    decisions = a.tick(topo, queue_depths={Pool.PREFILL: 0}, in_flight={Pool.PREFILL: 0})
+    assert decisions[0].delta < 0
+    assert decisions[0].reason == "queue_low"
+
+
+def test_min_dwell_rejects_negative() -> None:
+    with pytest.raises(ValueError):
+        PoolAutoscaler({Pool.PREFILL: _ctrl()}, min_dwell_s=-1.0)
+
+
+def test_min_dwell_property_alternating_queue() -> None:
+    """Property test: alternating high/low queue cannot flip pool more than
+    once per dwell window, even with continuous alternation.
+    """
+    clock = _Clock(1000.0)
+    a = PoolAutoscaler(
+        {Pool.PREFILL: _ctrl(kp=2.0)},
+        min_dwell_s=120.0,
+        clock=clock,
+    )
+    topo = {Pool.PREFILL: PoolTopology(pool=Pool.PREFILL, replicas=4, target_queue_depth=10)}
+
+    flips_observed: list[tuple[float, int]] = []  # (time, delta)
+    # Alternate queue every 10s for 600s. Without dwell: 60 flips. With 120s dwell: ≤5.
+    for i in range(60):
+        clock.advance(10.0)
+        depth = 30 if i % 2 == 0 else 0
+        decisions = a.tick(topo, queue_depths={Pool.PREFILL: depth}, in_flight={Pool.PREFILL: 0})
+        d = decisions[0]
+        if d.delta != 0:
+            flips_observed.append((clock.t, d.delta))
+
+    # With 120s dwell and 10s tick alternation, expect ≤5 effective flips
+    # (initial flip + ~one per 120s = 1+5 = 6 max in 600s).
+    assert len(flips_observed) <= 6, f"too many flips under alternating queue: {flips_observed}"
+
+
 # ---------- Property tests — drain protocol (P3-3) ----------
 
 
