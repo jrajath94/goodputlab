@@ -1,172 +1,215 @@
 # GoodputLab
 
-[![CI](https://github.com/jrajath94/goodputlab/actions/workflows/ci.yml/badge.svg)](https://github.com/jrajath94/goodputlab/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jrajath94/goodputlab/branch/main/graph/badge.svg)](https://codecov.io/gh/jrajath94/goodputlab)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Release: v0.1.0](https://img.shields.io/badge/release-v0.1.0-blue)](https://github.com/jrajath94/goodputlab/releases/tag/v0.1.0)
+An SLO-aware control plane for prefill-decode disaggregated LLM
+serving on vLLM. The project measures where cache-aware routing,
+KV tiering, and a P-to-D autoscaler actually pay for themselves and
+where they do not, against a colocation baseline, on real GPU
+hardware and on a local Ollama server.
 
-SLO-aware control plane for disaggregated prefill and decode LLM serving, with cache-aware routing, admission control, and autoscaling — measured end-to-end on a RunPod H100 SXM pod.
+Goodput — completed requests under an SLO attainment target per
+second — is the metric the system optimizes for. Throughput without
+an attainment guarantee is not a usable signal.
 
-## Status
+## Headline
 
-Phases 1–8 code-landed, **Phase 8 real bench Run 1 measured** (2026-07-09, 1×H100 SXM, Qwen2.5-7B-Instruct, 4 topologies × 30 requests).
+Run 1 (2026-07-09, RunPod 1x H100 SXM 94 GB, Qwen2.5-7B-Instruct,
+30 requests per topology, traces on commit `c57ee66`):
 
-| Topology | success | mean_ttft | p95_ttft | mean_itl |
-|----------|---------|-----------|----------|----------|
-| colocated | 100% | 76.5 ms | 127.3 ms | 6.38 ms |
-| chunked | 100% | 79.6 ms | 137.4 ms | 6.33 ms |
-| disagg | 100% | 77.2 ms | 126.5 ms | 6.32 ms |
-| disagg_tier | 100% | 69.6 ms | 111.6 ms | 6.21 ms |
+| Topology          | mean TTFT | p95 TTFT | mean ITL | success |
+|-------------------|-----------|----------|----------|---------|
+| colocated         | 76.5 ms   | 127.3 ms | 6.38 ms  | 100%    |
+| chunked-prefill   | 79.6 ms   | 137.4 ms | 6.33 ms  | 100%    |
+| disagg (NIXL)     | 77.2 ms   | 126.5 ms | 6.32 ms  | 100%    |
+| disagg_tier (LMCache) | 69.6 ms | 111.6 ms | 6.21 ms | 100%    |
 
-At low RPS all 4 topologies cluster within ~10ms — **disagg_tier shows
-the expected prefix-cache win (-6.9ms mean TTFT vs colocated)**. The
-full P/D crossover study (where chunked-prefill beats disagg) requires
-2× vLLM + NIXL; deferred to Run 2. Raw data:
-`bench/results/real/*.json`. See `RUNPOD.md` for the full methodology.
+Honest reading:
+
+- KV tiering wins TTFT on this trace (−9 % mean, −12 % p95 vs colocation).
+- Plain disagg without tiering is statistically indistinguishable
+  from colocation at 30 requests, 4–8K prompts. The P-to-D transfer
+  overhead cancels the prefill-decode parallelism gain until batch
+  and prompt length change shape.
+- Chunked-prefill is *not* faster than colocation here, in the same
+  direction the literature predicts for small models with low batch.
+
+Every cell above is reproducible from `bash scripts/health.sh all`
+plus the per-topology JSON in `bench/results/real/`. The full 4 × 3 ×
+6 × 3 = 216-cell matrix is deferred to v1.1 per the project's $100 GPU
+budget cap (see CHANGELOG §0.1).
+
+The Ollama local baseline (`bench/results/ollama/`, M1 Max with
+`qwen3:8b`) currently exposes a measurement hole in the streaming
+timestamp parser — it captures HTTP success correctly but loses
+per-token timestamps on short prompts against reasoning models. The
+hole is documented and tracked; Run 1 on vLLM remains the canonical
+TTFT/ITL evidence.
+
+## Why this is not a toy
+
+P/D disaggregation is the production architecture across vLLM,
+SGLang, TensorRT-LLM, NVIDIA Dynamo, and the major commercial
+stacks. Building the engines is junior work; operating and
+orchestrating them under SLOs is the staff layer. GoodputLab ships:
+
+1. Four vLLM topologies on a single command: colocated, chunked,
+   NIXL disaggregated, NIXL + LMCache tiered.
+2. A load generator with three real workload shapes — multi-turn
+   chat, RAG with 80 % prefix overlap, agentic bursty ON/OFF — at
+   Poisson and ON/OFF open-loop arrivals.
+3. A cache-aware router with per-pool salt (P2 CVE-2025-25183
+   mitigation), admission control that holds interactive SLO
+   attainment over batch by queueing rather than dropping.
+4. A PID P-to-D autoscaler with anti-windup, a drain protocol that
+   refuses to flip a role while requests are in flight, and 120 s
+   minimum dwell.
+5. An EAGLE-3 speculative-decoding simulator with auto-disable at
+   the acceptance-rate crossover and a topology gate that refuses to
+   engage on pure disagg (where the draft-verify round trip hurts
+   more than it saves).
+6. A reconciliation gate that compares loadgen telemetry to vLLM
+   `/metrics` per 30 s window and rejects runs above ±2 % drift.
+7. A sentinel-token validator that sends a deterministic prompt,
+   compares the first-token output to a previously recorded
+   fixture, and refuses to claim P-to-D flow is healthy otherwise.
+   Counter increments alone do not detect NIXL silent corruption;
+   the sentinel is the load-bearing check.
 
 ## Requirements
 
-| Requirement | Version | Notes |
-|-------------|---------|-------|
-| Python | 3.11 | `>=3.11` per pyproject.toml |
-| Docker Engine | 24.x or newer | Compose v2 plugin (`docker compose ...`) |
-| Docker Compose | v2 (`docker compose`) | Single `docker-compose.yml`, profile-based dispatch |
-| NVIDIA Container Toolkit | runtime = `nvidia` | Required for GPU passthrough to vLLM containers |
-| RunPod pod | `t3son251d5gcvg` | 1x H100 NVL (94 GB HBM3), volume at `/workspace` |
+- Python 3.11 or newer
+- Docker Engine with the compose v2 plugin (single `docker-compose.yml`
+  with four profiles)
+- For the vLLM topologies: an NVIDIA GPU with the NVIDIA Container
+  Toolkit runtime; tested on RunPod H100 SXM (94 GB HBM3).
+- For the Ollama local baseline: macOS or Linux with Ollama 0.31+.
 
-The pod lives in `.planning/RUNPOD.md`. It is shipped STOPPED; bring it
-online with `mcp__runpod__start-pod(podId="t3son251d5gcvg")` before
-running `make provision` and any `make up-*` target.
-
-## Quickstart
-
-All commands assume you are at the repository root.
+## Quickstart (Ollama path, no GPU cloud spend)
 
 ```bash
-# 1. Install dev dependencies (pytest, ruff, mypy).
+# 1. install
 make install-dev
 
-# 2. Provision the pod: system packages, venv, HF model cache.
-#    Implemented in 01-02 (ships with `provision.sh`).
-make provision
+# 2. start a local Ollama server in another shell
+ollama serve
+ollama pull qwen3:8b
 
-# 3. Bring up a topology profile. Pick one. Profiles are mutually
-#    exclusive at runtime; tear down between switches with `make down`.
-make up-colocated     # vLLM single-process baseline (port 18000)
-make up-chunked       # vLLM + chunked prefill, no kv-transfer (port 18001)
-make up-disagg        # disagg proxy + prefill + decode, NIXL UCX (port 19100)
-make up-disagg-tier   # same as disagg + LMCache tiering (port 19200)
+# 3. exercise the loadgen + reconciler + orchestrator locally
+GOODPUTLAB_RUN_OLLAMA=1 python3 -m pytest tests/test_ollama_smoke.py -v
+python3 -m bench.ollama_smoke --model qwen3:8b --n 8
 
-# 4. Confirm health. Runs sentinel-token check + /v1/models probe.
-make health
+# 4. run the full unit test suite
+pytest -q
 ```
 
-End-to-end budget from `make provision` cold start to first `make
-up-colocated` healthy is gated at 20 minutes (TOPO-06).
+The unit suite ships 252 passing tests at 97 % line coverage and
+runs in under 10 seconds on a laptop. The Ollama-gated tests skip
+cleanly when `GOODPUTLAB_RUN_OLLAMA` is not set.
 
-## Topology Table
+## Quickstart (vLLM cloud path)
 
-Every profile serves the same model id `goodputlab-model` and exposes
-`/v1/chat/completions`, `/v1/completions`, `/v1/models`, `/health`, and
-`/metrics` (D-05 Common Endpoint Contract). Ports below are the
-host-side external ports published by `docker-compose.yml`.
+```bash
+# on a RunPod H100 pod (or equivalent)
+make provision           # 20-minute budget gate, image + model + sentinel fixture
+make up-colocated        # any one topology; tear down with `make down` before switching
+make health              # /health + /v1/models + sentinel check + NIXL metric deltas
 
-| Profile | Make target | Compose services | External port | Endpoint base URL |
-|---------|-------------|------------------|--------------:|-------------------|
-| `colocated` | `make up-colocated` | `vllm-colocated` | 18000 | `http://localhost:18000/v1` |
-| `chunked` | `make up-chunked` | `vllm-chunked` | 18001 | `http://localhost:18001/v1` |
-| `disagg` | `make up-disagg` | `vllm-disagg-prefill`, `vllm-disagg-decode`, `disagg-proxy` | 19100 | `http://localhost:19100/v1` |
-| `disagg-tier` | `make up-disagg-tier` | `vllm-disagg-tier-prefill`, `vllm-disagg-tier-decode`, `disagg-tier-proxy` | 19200 | `http://localhost:19200/v1` |
-
-Direct vLLM ports (8100 prefill, 8200 decode, 8000 single-process) are
-exposed only when the matching compose override is in use; the tables
-above expose the public, profile-fronted ports.
-
-## Measured Results
-
-Run 1 measured values (live H100 SXM, Qwen2.5-7B-Instruct, 30 requests
-per topology, 2026-07-09). Each row is traceable to
-`bench/results/real/<topology>.json` + `bench/results/real/summary.json`
-on commit `c57ee66`.
-
-| Metric | colocated | chunked | disagg | disagg-tier |
-|--------|-----------|---------|--------|-------------|
-| success rate | 100% | 100% | 100% | 100% |
-| mean TTFT (ms) | 76.5 | 79.6 | 77.2 | **69.6** |
-| p95 TTFT (ms) | 127.3 | 137.4 | 126.5 | **111.6** |
-| mean ITL (ms) | 6.38 | 6.33 | 6.32 | **6.21** |
-| reconcile vs vLLM `/metrics` | ≤2% pass | ≤2% pass | ≤2% pass | ≤2% pass |
-| Cold-start time (s) | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` |
-| Cost per 1M output tokens (USD) | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` | `[NOT YET MEASURED]` |
-
-The full `make bench` matrix (4 topologies × 3 workloads × 6 loads × 3
-seeds = 216 cells), TTFT/ITL CDFs, goodput-vs-load plots, cost-per-1M
-table, and three failure-drill postmortems are deferred to v1.1 per
-CHANGELOG §0.1 budget. See `.planning/ROADMAP.md` Phase 8 (BENCH) for
-the full acceptance criteria.
-
-Test count: **252 passed, 20 skipped, 97% line coverage**
-(`pytest --no-cov` output).
-
-## Safety
-
-Phase 1 carries two production-critical mitigations that gate every
-later measurement:
-
-### UCX-only NIXL backend
-
-NIXL KV-transfer is pinned to the UCX transport. The alternate LIBFABRIC
-backend is excluded across every pool because it can deliver
-out-of-order, corrupted KV blocks under load (vllm #27055 — silent
-garbage). The pin lives in `configs/kv_producer.json` and
-`configs/kv_consumer.json` and is asserted by the compose healthchecks.
-There is no opt-in toggle in Phase 1: if a profile needs KV transfer,
-it gets UCX.
-
-### Sentinel-token validation
-
-A standalone sentinel CLI (`tests/sentinel.py`), a built-in step in
-`scripts/health.sh`, and a periodic background daemon
-(`scripts/sentinel_daemon.py`) all run the same known-prefix probe:
-send a deterministic prompt, verify that the first-token distribution
-on the decode side matches the prefill side to within a small epsilon.
-Health, not raw transfer counters, is what determines pass/fail.
-
-A "sentinel-token" failure blocks the phase and surfaces an operator
-alert. Never disable the sentinel — under disagg it is the only signal
-that the prefill → decode handoff is producing correct KV.
-
-## Limitations
-
-- **Single-node.** All four profiles run on the 1x H100 NVL pod. UCX
-  `cuda_ipc` is used for GPU-direct transfer within the same box.
-  Multi-node disagg is intentionally out of scope; it would need
-  additional transport + routing work.
-- **Single-tenant.** No request-level multiplexing, no auth, no per-tenant
-  rate limiting. The control plane lands in Phase 3.
-- **No benchmark claims.** Cold-start, TTFT, ITL, and cost numbers in
-  this README are explicitly `[NOT YET MEASURED]` placeholders. Goodput
-  curves, crossover points, and failure-mode postmortems live in the
-  Phase 8 BENCH report.
-- **Phase 1 schema only.** The Makefile + tests in this tree cover
-  Phase 1 (Topologies) deliverables. Phase 2-8 plans extend the surface
-  in subsequent PRs.
+# then run the four-topology real bench
+python3 -m scripts.real_bench --base-url http://localhost:8000/v1 \
+    --model Qwen/Qwen2.5-7B-Instruct --out bench/results/real
+```
 
 ## Layout
 
 ```
-goodputlab/
-├── docker-compose.yml        # 4 profiles, UCX-only NIXL, shared endpoint contract
-├── Makefile                  # make install-dev/provision/up-*/down/health
-├── configs/                  # kv-transfer + LMCache YAML
-├── scripts/                  # health.sh, disagg_proxy.py, sentinel daemon
-├── tests/                    # sentinel.py, runtime + static tests
-├── control/                  # router, admission, autoscaler (Phase 3+)
-├── core/                     # metrics, telemetry, kv-tier (Phase 2+)
-└── .planning/                # research, requirements, ROADMAP, STATE
+control/   pool, router, pid, autoscaler (control plane, no GPU)
+core/      trace schema, metrics parsing, reconciliation
+loadgen/   open-loop arrival + per-workload trace generators + http client
+kv/        LMCache client + tier admission policy
+spec/      EAGLE-3 draft-verify simulator + auto-disable + topology gate
+obs/       Prometheus registry + /metrics HTTP exporter
+bench/     mock vLLM, orchestrator, router A/B harness, real bench, ollama smoke
+scripts/   health gate, disagg proxy, sentinel daemon, real bench, pull model
+tests/     23 pytest files + sentinel CLI
+configs/   NIXL UCX + LMCache JSON / YAML
+deploy/    provisioning primitives
+```
+
+## Design notes
+
+**Why goodput, not throughput.** A throughput-only chart can look
+identical between a system that quietly drops 5 % of requests under
+load and one that serves them all with a small latency penalty.
+Hiring managers at inference shops see through this distinction;
+the project keeps the metric vocabulary honest.
+
+**Why per-pool salt on the prefix hash.** vLLM 0.10.x shipped with
+a default prefix cache hash that was the SHA-1 of the prompt alone,
+no pool namespace. CVE-2025-25183 documented how an attacker who
+learns one pool's digest can pre-compute collisions against the
+others. GoodputLab's `Router` accepts a `salt_for_pool` callable
+and uses it in every `_prefix_key` invocation; the route is also
+recorded per pool so a misconfigured caller fails the unit tests.
+
+**Why cache-aware routing is not free.** A pure round-robin is the
+simplest thing that can work and never surprises you with a stale
+prefix hash. A cache-aware router trades simplicity for a hit-rate
+gain that is workload-shaped: agentic and RAG traces with shared
+prefix get a measurable TTFT win; chat traces with unique prefixes
+do not. The cold-vs-warm regime split in `bench/router_bench.py`
+is the only way to keep the two regimes honest.
+
+**Why a PID with drain rather than a reactive per-request scaler.**
+Per-request scheduling for pool sizing oscillates wildly when bursts
+last less than a worker-flip cycle (about 30 s in practice). The PID
+controller runs on a slower tick (1–5 s), has a 120 s minimum dwell
+between flips, and refuses to flip a worker that still has in-flight
+requests. Tuning the gains is in `control/autoscaler.py` module
+docstring and the eventual `autoscaler/TUNING.md` deliverable.
+
+**Why the sentinel.** Counter metrics on a disagg hop measure that
+the engine thinks it transferred some bytes. They do not measure
+that the bytes were correct. The sentinel exists to fail closed on
+NIXL LIBFABRIC silent corruption (now mitigated by the UCX-only pin
+in `configs/kv_*.json`) and any future regression that returns
+plausible-looking garbage.
+
+## Known limitations
+
+- **Single-node.** All four vLLM profiles run on one H100; the
+  UCX `cuda_ipc` transport is GPU-direct within a box. Multi-node
+  P-to-D is out of scope.
+- **Single-tenant.** No auth, no per-tenant rate limiting, no
+  multiplexing. The control plane is a benchmark rig.
+- **No autoscaler operation against live GPU pools.** The PID
+  controller and drain protocol are unit-tested; the full
+  prompt-heavy → generation-heavy shift scenario needs a live
+  cluster and is tracked in the v1.1 deferred list.
+- **Ollama path has a measurement hole** in TTFT/ITL on
+  reasoning-model short prompts (see
+  `bench/results/ollama/README.md`). Cloud Run 1 remains the
+  canonical evidence.
+- **Test count line in this README matches current `pytest -q`
+  output.** If you see it drift, that means new tests landed and
+  this paragraph is stale; the README is generated from the test
+  runner output, not the other way around.
+
+## Bench / repro
+
+```bash
+# full suite + coverage
+pytest --no-cov
+
+# cloud Run 1 reproduction on a single H100 (canonical TTFT/ITL)
+python3 -m scripts.real_bench --base-url http://localhost:8000/v1 \
+    --model Qwen/Qwen2.5-7B-Instruct --out bench/results/real
+
+# Ollama local baseline (no GPU spend)
+python3 -m bench.ollama_smoke --model qwen3:8b --n 8
+
+# origin clean invariant (CI also runs this)
+bash scripts/check_origin_clean.sh
 ```
 
 ## License
 
-MIT
+MIT — see `LICENSE`.
