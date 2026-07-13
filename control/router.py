@@ -9,12 +9,19 @@ Decision rules (see 03-01-PLAN.md for full narrative):
 4. Admission policy rejects requests whose chosen pool exceeds
    ``headroom_pct`` of capacity, unless ``interactive_bypass=True``
    and the request is INTERACTIVE.
+
+P2 mitigation (CVE-2025-25183): prefix hashes are salted per-pool so an
+attacker who learns one prefix digest cannot pre-compute collisions
+against a different pool.  ``salt_for_pool`` defaults to a constant
+empty byte string (legacy behavior); production wiring passes a callable
+that returns per-pool bytes.
 """
 
 from __future__ import annotations
 
 import hashlib
 from collections import OrderedDict
+from collections.abc import Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -53,12 +60,18 @@ class PoolDecision(BaseModel):
     prefix_hash: str | None = None
 
 
-def _prefix_key(spec: RequestSpec, prefix_chars: int = 256) -> str:
-    """Stable cache key from the first ``prefix_chars`` of the prompt.
+def _prefix_key(
+    spec: RequestSpec,
+    salt: bytes = b"",
+    prefix_chars: int = 256,
+) -> str:
+    """Stable cache key from the first ``prefix_chars`` of the prompt + salt.
 
-    SHA-256 hex digest; first 16 chars used to keep labels compact.
+    SHA-256 over ``salt || prompt[0:prefix_chars]``; first 16 hex chars
+    used to keep labels compact.  Per-pool salt makes the cache namespace
+    pool-local (P2 mitigation against CVE-2025-25183).
     """
-    h = hashlib.sha256(spec.prompt_text[:prefix_chars].encode("utf-8")).hexdigest()
+    h = hashlib.sha256(salt + spec.prompt_text[:prefix_chars].encode("utf-8")).hexdigest()
     return h[:16]
 
 
@@ -74,9 +87,13 @@ class Router:
         self,
         policy: AdmissionPolicy | None = None,
         prefix_cache_size: int = 1024,
+        salt_for_pool: Callable[[Pool], bytes] | None = None,
     ) -> None:
         self._policy = policy or AdmissionPolicy()
         self._cache_max = prefix_cache_size
+        # Default to empty salt (legacy behavior); production callers pass
+        # a Callable[[Pool], bytes]. See control/router.py docstring + PITFALLS P2.
+        self._salt_for_pool: Callable[[Pool], bytes] = salt_for_pool or (lambda _p: b"")
         self._prefix_cache: OrderedDict[str, Pool] = OrderedDict()
         self._pools: dict[Pool, PoolState] = {}
 
@@ -106,12 +123,22 @@ class Router:
                 reason="no_pools_registered",
             )
 
-        key = _prefix_key(spec)
-
         # 1. Cache hit: stick to the same pool if it still has capacity.
+        # Look up under each candidate pool's salt in turn, preferring the
+        # lowest-depth healthy pool's hash first (cheap best-case; in the
+        # worst case we inspect ~O(num_pools) entries per request).
+        chosen_pool = self._select_admissible(spec)
+        if chosen_pool is not None:
+            salt = self._salt_for_pool(chosen_pool)
+            key = _prefix_key(spec, salt)
+        else:
+            # Provisional key (used only in the all_pools_full response).
+            key = _prefix_key(spec, self._salt_for_pool(Pool.COLOCATED))
+
+        # Cache lookup is pool-aware: only entries under THIS pool's salt
+        # match. This is the P2 mitigation — pools share no key namespace.
         if key in self._prefix_cache:
             cached_pool = self._prefix_cache[key]
-            # Mark as recently used (move to end of LRU).
             self._prefix_cache.move_to_end(key)
             state = self._pools.get(cached_pool)
             if state is not None and state.healthy and self._admissible(spec, state):
@@ -123,8 +150,6 @@ class Router:
                 )
             # Cache hit but pool is full → fall through to load-balance.
 
-        # 2. Pick the lowest-depth pool, iterating to find an admissible one.
-        chosen_pool = self._select_admissible(spec)
         if chosen_pool is None:
             # No pool can admit this request (all unhealthy or all over headroom).
             return PoolDecision(
