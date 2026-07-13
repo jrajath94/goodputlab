@@ -21,11 +21,20 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class TokenEvent:
-    """A single emitted token from a streaming completion."""
+    """A single emitted token from a streaming completion.
+
+    ``reasoning`` is True when the event came from a reasoning-model
+    reasoning channel (``delta.reasoning_content`` or ``delta.reasoning``)
+    rather than the visible ``delta.content`` channel. Reasoning events
+    count toward TTFT and ITL the same as visible tokens because they
+    are model-emitted and dominate wall-clock latency for short prompts
+    on reasoning models (Ollama qwen3 family in particular).
+    """
 
     content: str
     ts_ns: int  # caller-recorded wall-clock at parse time
     finish_reason: str | None = None  # populated on the final chunk
+    reasoning: bool = False
 
 
 def parse_sse_lines(
@@ -67,12 +76,29 @@ def parse_sse_lines(
         if not choices:
             continue
         delta = choices[0].get("delta") or {}
+        # OpenAI-compat content channel
         content = delta.get("content")
-        if not content:
+        # Ollama reasoning-model channels. qwen3 streams these BEFORE
+        # any visible content; without this branch, the first delta
+        # yields nothing and per_token_ts_ns ends up empty.
+        reasoning_content = delta.get("reasoning_content")
+        reasoning_text = delta.get("reasoning")
+        if content:
+            text = content
+            is_reasoning = False
+        elif reasoning_content or reasoning_text:
+            text = reasoning_content or reasoning_text
+            is_reasoning = True
+        else:
             continue
         ts = next(clock_ns)
         finish = choices[0].get("finish_reason")
-        yield TokenEvent(content=content, ts_ns=ts, finish_reason=finish)
+        yield TokenEvent(
+            content=text,
+            ts_ns=ts,
+            finish_reason=finish,
+            reasoning=is_reasoning,
+        )
 
 
 __all__ = ["TokenEvent", "parse_sse_lines"]
