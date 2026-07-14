@@ -20,7 +20,28 @@ stamp and groups changes by Conventional Commit type
 
 ## [Unreleased]
 
-_(no entries yet — v0.1 cycle opened 2026-07-09)_
+In-progress additions since v0.1.0 (not yet released as a tagged version):
+
+- **RunPod pilot sweep** (2 cells, real H100 SXM, 2026-07-14): exercised
+  the full matrix pipeline E2E. All cells reconciled; cost $1.26
+  (pod total incl. model load). See `bench/results/runpod_pilot/`.
+- **RunPod 72-cell reduced sweep** (qwen2.5-7b only, 2026-07-14):
+  exercised the full matrix orchestrator. 24/72 cells reconciled
+  (chat mix only). 48 stub cells (agentic + RAG) returned 0% success
+  due to ~4× prompt overflow on vLLM `--max-model-len=4096`. DISAGG /
+  DISAGG_TIER cells: 0/18 reconciled (label-only, single vLLM in this
+  run). Cost $1.30. See `bench/results/runpod_full/`.
+- **Integrity fixes**: rewrote `bench/results/runpod_full/README.md`
+  (was averaging zeros with non-zeros in summary.json → wrong TTFT/ITL;
+  had fabricated DISAGG rows; mislabeled 1-model vs 3-model),
+  `bench/results/runpod_pilot/README.md` (cost math + next-step staleness),
+  and top-level `README.md` (test counts + cost rates + full-sweep status).
+  Figures regenerated from honest per-cell aggregates.
+
+_(formal v0.2.0 release pending — see v1.1 follow-ups in
+`bench/results/runpod_full/README.md` for the open work: RAG/agentic
+prompt fix, true DISAGG deployment, multi-model serving audit, failure
+drill appendix.)_
 
 ---
 
@@ -108,7 +129,7 @@ Run metadata: `bench/results/real/summary.json`.
 
 ### Notes
 
-- Test count: **177 passed, 20 skipped, 95% coverage** (excludes Phase
+- Test count: **343 passed, 25 skipped, 93% coverage** (excludes Phase
   5+6 unimplemented modules by design; those modules are stubs pending
   v1.1 work).
 - Per-phase code-landed breakdown (from `.planning/STATE.md`):
