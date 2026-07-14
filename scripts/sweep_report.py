@@ -16,7 +16,6 @@ post-sweep automation to gate "did the sweep finish?" checks.
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 from bench.matrix_report import render_report, sweep_completion_report
