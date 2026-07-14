@@ -12,6 +12,7 @@ loads and returns it without re-firing requests.
 from __future__ import annotations
 
 import asyncio
+import logging
 import statistics
 import subprocess
 import time
@@ -28,10 +29,13 @@ from bench.schema.cell_schema import (
     ThermalReading,
     Topology,
 )
+from control.pool import Pool
 from core.trace import RequestTelemetry, Trace, WorkloadType
 from loadgen.agentic import AgenticTraceGenerator, AgenticWorkloadConfig
 from loadgen.chat import ChatTraceGenerator, ChatWorkloadConfig
 from loadgen.rag import RagTraceGenerator, RagWorkloadConfig
+
+logger = logging.getLogger(__name__)
 
 # ---------- metrics ----------
 
@@ -233,10 +237,14 @@ class CellRunner:
         replay_factory: ReplayFactory,
         thermal: ThermalSource,
         sink: CellSink | None = None,
+        routed_pool_for: Callable[[Any], str | None] | None = None,
     ) -> None:
         self._client_factory = client_factory
         self._replay_factory = replay_factory
         self._thermal = thermal
+        # Optional routing decision — if None, requests carry routed_pool=None
+        # (which is fine for COLOCATED cells; DISAGG/DISAGG_TIER need a router).
+        self._routed_pool_for = routed_pool_for
         # Default sink writes to /tmp so build_trace / metrics tests
         # don't need to provision a tmpdir just to instantiate.
         self._sink: CellSink = sink if sink is not None else JsonCellSink(
@@ -256,7 +264,9 @@ class CellRunner:
             try:
                 return self._sink.load(spec.cell_id)
             except Exception:  # noqa: BLE001 — corrupt JSON, self-heal
-                pass
+                logger.warning(
+                    "cell %s json corrupt, re-executing", spec.cell_id
+                )
         return self._execute(spec)
 
     def build_trace(self, spec: CellSpec) -> Trace:
@@ -278,7 +288,9 @@ class CellRunner:
 
         started = datetime.now(UTC)
         t0 = time.perf_counter()
-        telemetries = asyncio.run(replay.replay(trace))
+        telemetries = asyncio.run(
+            replay.replay(trace, routed_pool_for=self._routed_pool_for)
+        )
         duration_s = time.perf_counter() - t0
 
         metrics = aggregate_metrics(telemetries)
@@ -322,7 +334,9 @@ class CellRunner:
             return 0.0
         if not telemetries:
             return 0.0
-        tier = [t for t in telemetries if t.routed_pool == "TIER"]
+        # Pool.TIER.value == "tier" (lowercase).  Match it exactly.
+        tier_pool = Pool.TIER.value
+        tier = [t for t in telemetries if t.routed_pool == tier_pool]
         return len(tier) / len(telemetries)
 
 

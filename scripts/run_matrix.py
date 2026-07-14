@@ -22,11 +22,11 @@ Environment::
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
-from pathlib import Path
-
 from collections.abc import Callable
+from pathlib import Path
 
 from bench.cell_runner import NvidiaSmiThermalSource
 from bench.matrix_aggregator import write_summary
@@ -34,6 +34,8 @@ from bench.runpod_matrix import BenchMatrix
 from bench.schema.matrix_config import load_matrix_config
 from loadgen.client import VllmHttpClient
 from loadgen.replay import ReplayRunner
+
+logger = logging.getLogger(__name__)
 
 
 def _build_client_factory(
@@ -135,7 +137,19 @@ def main(argv: list[str] | None = None) -> int:
         flush=True,
     )
 
-    summary_path = write_summary(cfg.output_dir, report, cfg.cost_per_hour_usd)
+    if report.n_cells_completed == 0:
+        print(
+            "[run_matrix] ERROR: no cells completed; skipping summary.",
+            file=sys.stderr,
+        )
+        return 3  # distinct exit code for "all failed / nothing to aggregate"
+
+    try:
+        summary_path = write_summary(cfg.output_dir, report, cfg.cost_per_hour_usd)
+    except ValueError as exc:
+        # write_summary() raises if no valid CellResult JSONs exist on disk.
+        logger.error("summary write failed: %s", exc)
+        return 4
     print(f"[run_matrix] summary: {summary_path}", flush=True)
     return 0 if report.n_cells_failed == 0 else 1
 

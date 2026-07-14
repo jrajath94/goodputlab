@@ -23,6 +23,7 @@ vLLM endpoint.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -36,7 +37,9 @@ from bench.cell_runner import (
     ThermalSource,
 )
 from bench.matrix_aggregator import CampaignReport
-from bench.schema.cell_schema import CellSpec, Mix, Model, Topology
+from bench.schema.cell_schema import CellResult, CellSpec, Mix, Model, Topology
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -109,8 +112,29 @@ class BenchMatrix:
         return list(self._matrix_spec.cells())
 
     def pending_cell_specs(self) -> list[CellSpec]:
-        """Cells without a valid JSON on disk yet."""
-        existing = {p.stem for p in self._cells_dir.glob("*.json")}
+        """Cells without a valid (parseable + cell_id-matching) JSON on disk.
+
+        Mirrors :meth:`CellRunner.run_cell`'s self-heal contract: a corrupt
+        JSON from a crashed previous run is NOT treated as "done" — the
+        cell is re-run.
+        """
+        existing: set[str] = set()
+        for path in self._cells_dir.glob("*.json"):
+            try:
+                result = CellResult.model_validate_json(path.read_text())
+            except Exception:  # noqa: BLE001 — corrupt, treat as pending
+                logger.warning(
+                    "pending: %s corrupt, will re-run", path.name
+                )
+                continue
+            if result.cell_id != path.stem:
+                logger.warning(
+                    "pending: %s cell_id mismatch (%r), will re-run",
+                    path.name,
+                    result.cell_id,
+                )
+                continue
+            existing.add(result.cell_id)
         return [c for c in self.all_cell_specs() if c.cell_id not in existing]
 
     # --- execution ---
@@ -134,6 +158,7 @@ class BenchMatrix:
             try:
                 result = self._runner.run_cell(spec)
             except Exception:  # noqa: BLE001 — one cell's failure must not abort the sweep
+                logger.exception("cell %s failed", spec.cell_id)
                 n_failed += 1
                 continue
             n_completed += 1
