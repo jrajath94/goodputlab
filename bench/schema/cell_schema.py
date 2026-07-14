@@ -111,11 +111,20 @@ class CellResult(BaseModel):
 
 
 class SummaryStats(BaseModel):
-    """Aggregate stats across all cells in a campaign."""
+    """Aggregate stats across all cells in a campaign.
+
+    Latency means are computed over the **reconciled** subset only.
+    Stub cells (``reconcile_passes=False``) carry ``mean_ttft_ms=0``
+    because they never produced real telemetry; averaging their zeros
+    together with real measurements silently masks performance and is
+    the bug fixed in this version. ``n_cells_reconciled`` exposes the
+    sample size so the reader knows what the mean is over.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     n_cells: int
+    n_cells_reconciled: int
     n_unreconciled: int
     n_thermal_warnings: int
     all_reconciled: bool
@@ -127,21 +136,34 @@ class SummaryStats(BaseModel):
         if not results:
             return cls(
                 n_cells=0,
+                n_cells_reconciled=0,
                 n_unreconciled=0,
                 n_thermal_warnings=0,
                 all_reconciled=True,
                 mean_ttft_ms=0.0,
                 mean_itl_ms=0.0,
             )
-        n_unreconciled = sum(1 for r in results if not r.reconcile_passes)
+        reconciled = [r for r in results if r.reconcile_passes]
+        n_unreconciled = len(results) - len(reconciled)
         n_thermal = sum(1 for r in results if r.has_thermal_warning)
+        n_reconciled = len(reconciled)
+        # Honest aggregate: over reconciled only. If none reconciled,
+        # the means are 0.0 (no real telemetry) rather than crashing
+        # on a ZeroDivisionError or averaging zeros with non-zeros.
+        if n_reconciled:
+            mean_ttft = sum(r.mean_ttft_ms for r in reconciled) / n_reconciled
+            mean_itl = sum(r.mean_itl_ms for r in reconciled) / n_reconciled
+        else:
+            mean_ttft = 0.0
+            mean_itl = 0.0
         return cls(
             n_cells=len(results),
+            n_cells_reconciled=n_reconciled,
             n_unreconciled=n_unreconciled,
             n_thermal_warnings=n_thermal,
             all_reconciled=n_unreconciled == 0,
-            mean_ttft_ms=sum(r.mean_ttft_ms for r in results) / len(results),
-            mean_itl_ms=sum(r.mean_itl_ms for r in results) / len(results),
+            mean_ttft_ms=mean_ttft,
+            mean_itl_ms=mean_itl,
         )
 
 

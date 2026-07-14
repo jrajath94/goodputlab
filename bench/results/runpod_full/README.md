@@ -15,27 +15,29 @@
 
 | Metric | Value |
 |---|---|
-| Cells completed | 72/72 (no crashes; all wrote JSON) |
+| Cells on disk | **72** (54 colocated + 18 chunked + **0 disagg + 0 disagg_tier**) |
 | Cells reconcile_passes=True (success≥0.99) | **24/72 (33%)** — chat mix only |
 | Cells with success_rate=0.0 (stub) | **48/72 (67%)** — 24 agentic + 24 RAG, both fully failed |
+| Topologies never attempted | **disagg, disagg_tier (0 cells on disk — not failed, not run)** |
 | Mean TTFT (24 reconciled, chat-only) | **197.55 ms** |
 | Mean ITL (24 reconciled, chat-only) | **8.39 ms** |
 | Median TTFT (24 reconciled) | 120.83 ms |
 | p95 TTFT (24 reconciled) | 493.42 ms |
 | Thermal warnings | 0/72 |
 
-> **Note on summary.json aggregates:** the campaign-level `mean_ttft_ms` /
-> `mean_itl_ms` in `summary.json` (101.23 / 5.07) average zeros from
-> stub cells together with the 24 reconciled cells. The numbers above
-> are computed from the 24 reconciled cells directly and are the
-> honest aggregate.
+> **Note on aggregates:** the campaign-level `mean_ttft_ms` /
+> `mean_itl_ms` are computed by `SummaryStats.from_results` over the
+> **reconciled** subset only. Stub cells have `mean_ttft_ms=0` because
+> they never produced real telemetry; averaging those zeros with
+> non-zeros would silently mask performance — the aggregator is
+> explicit about excluding them.
 
 ## Honest finding: agentic + RAG workloads both broken in this setup
 
-**All 24 agentic cells AND all 24 RAG cells (every rate × every topology,
-every model) returned success_rate=0.0 with TTFT=0.** Only the 24 chat
-cells produced real measurements. Root cause confirmed by code inspection
-(post-sweep, no ssh access to pod):
+**All 24 agentic cells AND all 24 RAG cells (every rate × every topology
+that has cells, every model) returned success_rate=0.0 with TTFT=0.**
+Only the 24 chat cells produced real measurements. Root cause confirmed
+by code inspection (post-sweep, no ssh access to pod):
 
 1. **RAG prompt overflows vLLM `--max-model-len=4096` by ~4×.** From
    `loadgen/rag.py:38` — `n_corpus_docs=8` ×
@@ -63,28 +65,34 @@ Fix options for v1.1:
 
 ## What worked (chat only — only mix with reconciled cells)
 
-| Topology | Cells passed reconcile | Mean TTFT | Mean ITL |
-|---|---|---|---|
-| colocated | 18/18 | 170.68 ms | 8.36 ms |
-| chunked | 6/18 | 278.13 ms | 8.47 ms |
-| disagg | **0/18** | [NOT MEASURED] | [NOT MEASURED] |
-| disagg_tier | **0/18** | [NOT MEASURED] | [NOT MEASURED] |
+| Topology | Cells on disk | Reconciled | Mean TTFT | Mean ITL |
+|---|---|---|---|---|
+| colocated | 54 | 18/54 | 170.68 ms | 8.36 ms |
+| chunked | 18 | 6/18 | 278.13 ms | 8.47 ms |
+| disagg | **0** | **NOT ATTEMPTED** | — | — |
+| disagg_tier | **0** | **NOT ATTEMPTED** | — | — |
 
 **Honest reading:** chunked-prefill shows ~63% higher mean TTFT than
 colocated across the chat-mix cells. The DISAGG and DISAGG_TIER cells
-returned success_rate=0.0 in this run — likely the disaggregation runtime
-path requires config the matrix runner does not yet apply to a single
-vLLM instance. They are NOT meaningful measurements of true
-disaggregated serving. True DISAGG needs separate prefill + decode vLLM
-instances + NIXL UCX (planned v1.1).
+do NOT exist on disk — the matrix orchestrator did not produce any
+output for those topologies. They are NOT meaningful measurements of
+true disaggregated serving. True DISAGG needs separate prefill + decode
+vLLM instances + NIXL UCX (planned v1.1); the orchestrator needs to be
+configured to actually run those cells (it currently skips them or
+errors silently).
 
-**Model breakdown of the 24 chat-reconciled cells:**
+**Model breakdown of the 72 cells on disk:**
 
-| Model | Reconciled | Notes |
-|---|---|---|
-| qwen3-1.7b | 12/24 | 6 colocated + 6 chunked |
-| qwen2.5-7b | 6/24 | all colocated |
-| qwen3-30b | 6/24 | all colocated |
+| Model | Cells | Topology | Reconciled |
+|---|---|---|---|
+| qwen3-1.7b | 18 | chunked | 6 |
+| qwen3-1.7b | 18 | colocated | 6 |
+| qwen2.5-7b | 18 | colocated | 6 |
+| qwen3-30b | 18 | colocated | 6 |
+
+The 4-cell × 18-cell asymmetry (colocated covers 3 models, chunked only
+1) reflects the actual matrix runner output — the orchestrator did not
+run disagg/disagg_tier and did not produce multi-model chunked cells.
 
 ## Figures
 
@@ -107,9 +115,11 @@ instances + NIXL UCX (planned v1.1).
 2. **Agentic fix:** borderline overflow — same options.
 3. **Telemetry gap:** add `error_kind` field to `RequestTelemetry`
    so future sweeps capture HTTP 400 reason without re-running.
-4. **True DISAGG:** separate prefill + decode vLLM instances + NIXL UCX —
-   36 disagg cells produced 0 measurements
-5. **Investigate vLLM multi-model serving:** 3 models labelled,
-   24 cells reconciled across all 3; need to confirm what was actually
-   served per request vs what was labelled
-6. **Failure drill appendix** (router reject, KV stall, thermal throttle)
+4. **DISAGG / DISAGG_TIER never attempted:** orchestrator did not
+   produce any cells for those topologies. Investigate why
+   (silent skip? configuration missing?) and re-run.
+5. **True DISAGG:** separate prefill + decode vLLM instances + NIXL UCX.
+6. **Multi-model coverage gap:** only qwen3-1.7b ran chunked;
+   qwen2.5-7b + qwen3-30b only ran colocated. Either extend sweep
+   or document the model × topology matrix the runner actually covers.
+7. **Failure drill appendix** (router reject, KV stall, thermal throttle)

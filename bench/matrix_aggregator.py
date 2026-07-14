@@ -118,18 +118,27 @@ def write_summary(
     per_topology_payload: dict[str, dict[str, object]] = {}
     for topo, cells in sorted(grouped.items(), key=lambda kv: kv[0].value):
         n = len(cells)
+        reconciled = [c for c in cells if c.reconcile_passes]
+        n_reconciled = len(reconciled)
+        # Honest aggregate: means over reconciled only. Stub cells
+        # have mean_ttft_ms=0 because they never produced telemetry —
+        # averaging those zeros with real measurements silently masks
+        # the truth. See SummaryStats.from_results for the same logic.
+        if n_reconciled:
+            mean_ttft = sum(c.mean_ttft_ms for c in reconciled) / n_reconciled
+            mean_itl = sum(c.mean_itl_ms for c in reconciled) / n_reconciled
+            success_rate = sum(c.success_rate for c in reconciled) / n_reconciled
+        else:
+            mean_ttft = 0.0
+            mean_itl = 0.0
+            success_rate = 0.0
         per_topology_payload[topo.value] = {
             "n_cells": n,
-            "mean_ttft_ms": (
-                sum(c.mean_ttft_ms for c in cells) / n if n else 0.0
-            ),
-            "mean_itl_ms": (
-                sum(c.mean_itl_ms for c in cells) / n if n else 0.0
-            ),
-            "success_rate": (
-                sum(c.success_rate for c in cells) / n if n else 0.0
-            ),
-            "n_unreconciled": sum(1 for c in cells if not c.reconcile_passes),
+            "n_reconciled": n_reconciled,
+            "mean_ttft_ms": mean_ttft,
+            "mean_itl_ms": mean_itl,
+            "success_rate": success_rate,
+            "n_unreconciled": n - n_reconciled,
             "n_thermal_warnings": sum(1 for c in cells if c.has_thermal_warning),
             "total_cost_usd": sum(
                 _cost_per_cell(c.duration_s, cost_per_hour_usd) for c in cells

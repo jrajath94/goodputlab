@@ -114,8 +114,89 @@ def test_aggregate_summary_stats(tmp_path: Path) -> None:
     summary = SummaryStats.from_results(results)
     assert summary.n_cells == 3
     assert summary.n_unreconciled == 1
+    assert summary.n_cells_reconciled == 2
     assert summary.all_reconciled is False
-    assert summary.mean_ttft_ms == pytest.approx(80.0)
+    # Honest mean is over RECONCILED cells only — stub cells have
+    # mean_ttft_ms=0 because they never produced real telemetry.
+    # (70 + 80) / 2 = 75.0. Averaging with the stub's 0 would give 80.0
+    # and silently mask the truth. See fix in SummaryStats.from_results.
+    assert summary.mean_ttft_ms == pytest.approx(75.0)
+
+
+def test_aggregate_summary_excludes_stub_cells_from_means(tmp_path: Path) -> None:
+    """Stub cells (reconcile_passes=False) must not dilute latency means.
+
+    Regression test for the silent-averaging bug where stub cells'
+    mean_ttft_ms=0 averaged together with real cells' measurements
+    produced misleading summary.json numbers.
+    """
+    # 2 real cells with strong signal
+    _write_cell(tmp_path / "real1.json", _cell("real1", mean_ttft_ms=200.0))
+    _write_cell(tmp_path / "real2.json", _cell("real2", mean_ttft_ms=300.0))
+    # 5 stub cells — would dominate the average if naive
+    for i in range(5):
+        _write_cell(
+            tmp_path / f"stub{i}.json",
+            _cell(f"stub{i}", mean_ttft_ms=0.0, reconcile_passes=False),
+        )
+    results = aggregate(tmp_path)
+    summary = SummaryStats.from_results(results)
+    # Honest mean is over reconciled only: (200 + 300) / 2 = 250.0
+    assert summary.mean_ttft_ms == pytest.approx(250.0)
+    assert summary.n_cells == 7
+    assert summary.n_cells_reconciled == 2
+    assert summary.n_unreconciled == 5
+
+
+def test_aggregate_summary_with_only_stubs_returns_zero_means(tmp_path: Path) -> None:
+    """When ALL cells are stubs (reconcile_passes=False), means are 0.0.
+
+    No reconciled cells means no honest latency aggregate exists.
+    Return 0.0 for both means (no real telemetry) rather than crashing
+    on ZeroDivisionError.
+    """
+    for i in range(3):
+        _write_cell(
+            tmp_path / f"stub{i}.json",
+            _cell(f"stub{i}", mean_ttft_ms=0.0, reconcile_passes=False),
+        )
+    results = aggregate(tmp_path)
+    summary = SummaryStats.from_results(results)
+    assert summary.n_cells == 3
+    assert summary.n_cells_reconciled == 0
+    assert summary.n_unreconciled == 3
+    assert summary.all_reconciled is False
+    assert summary.mean_ttft_ms == 0.0
+    assert summary.mean_itl_ms == 0.0
+
+
+def test_per_topology_breakdown_excludes_stub_cells_from_means(tmp_path: Path) -> None:
+    """write_summary per-topology means must also filter to reconciled."""
+    _write_cell(
+        tmp_path / "a.json",
+        _cell("a", topology=Topology.COLOCATED, mean_ttft_ms=100.0),
+    )
+    _write_cell(
+        tmp_path / "b.json",
+        _cell("b", topology=Topology.COLOCATED, mean_ttft_ms=200.0, reconcile_passes=False),
+    )
+    report = CampaignReport(
+        n_cells_completed=1,
+        n_cells_failed=1,
+        total_duration_s=10.0,
+        cost_usd=0.01,
+        pod_id="local-test",
+        started_at=datetime(2026, 7, 14, 12, 0, 0),
+        ended_at=datetime(2026, 7, 14, 12, 0, 10),
+    )
+    path = write_summary(tmp_path, report, cost_per_hour_usd=2.99)
+    data = json.loads(path.read_text())
+    colocated = data["per_topology"][Topology.COLOCATED.value]
+    # Only 1 reconciled cell with 100.0 — mean must reflect that, not
+    # average of (100 + 0) / 2 = 50.0.
+    assert colocated["n_cells"] == 2
+    assert colocated["n_unreconciled"] == 1
+    assert colocated["mean_ttft_ms"] == pytest.approx(100.0)
 
 
 def test_per_topology_breakdown_groups_correctly(tmp_path: Path) -> None:
