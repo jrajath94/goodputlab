@@ -35,9 +35,11 @@ Honest reading:
 Every cell above is reproducible from `bash scripts/health.sh all`
 plus the per-topology JSON in `bench/results/real/`. The full 4 × 3 ×
 6 × 3 = 216-cell sweep pipeline ships (`bench/runpod_matrix.py` +
-`scripts/run_matrix.py`) and a 2-cell pilot exercises it on real GPU
-for ~$0.10; the full campaign is budget-deferred — see "216-cell
-matrix sweep" below.
+`scripts/run_matrix.py`), a 2-cell pilot exercises it on real GPU
+(actual cost: $1.26 including pod model load), and a 72-cell reduced
+full sweep ran (single model qwen2.5-7b; $1.30; 24/72 reconciled) —
+see "216-cell matrix sweep" below for honest details and the v1.1
+follow-up list.
 
 The Ollama local baseline (`bench/results/ollama/`, M1 Max with
 `qwen3:8b`) currently exposes a measurement hole in the streaming
@@ -103,8 +105,8 @@ python3 -m bench.ollama_smoke --model qwen3:8b --n 8
 pytest -q
 ```
 
-The unit suite ships 252 passing tests at 97 % line coverage and
-runs in under 10 seconds on a laptop. The Ollama-gated tests skip
+The unit suite ships 343 passing tests at 93 % line coverage and
+runs in under 60 seconds on a laptop. The Ollama-gated tests skip
 cleanly when `GOODPUTLAB_RUN_OLLAMA` is not set.
 
 ## Quickstart (vLLM cloud path)
@@ -236,20 +238,23 @@ python -m scripts.run_matrix --config configs/runpod_matrix.yaml
 The runner reads `RUNPOD_VLLM_BASE_URL` from the environment (default for
 in-cluster runs: `http://127.0.0.1:8000/v1`).
 
-**Cost on H100 SXM spot @ $1.79/hr:**
+**Cost on H100 SXM secure @ $2.99/hr** (RunPod 2026-07 pricing):
 
-| Phase | Cells | Cost |
+| Phase | Cells | Actual cost |
 |---|---|---|
 | Per cell (model loaded, 35 reqs + reconcile + thermal) | 1 | ~$0.02–0.05 |
 | Per (topology, model) pair — vLLM warmup | 12 pairs | ~$0.06 each |
-| Pilot (2 cells, 1 model load) | 2 | ~$0.10 |
-| Full sweep, sequential on one H100 | 216 | ~$10–20 |
-| Full sweep, parallelized across 4–8 H100s | 216 | ~$600–1200 (project budget tier) |
+| Pilot (2 cells, 1 model load) — measured 2026-07-14 | 2 | **$1.26** |
+| Full reduced sweep (qwen2.5-7b only, single vLLM) — measured 2026-07-14 | 72 | **$1.30** (24/72 reconciled) |
+| Full 216-cell sweep — not yet run; estimated | 216 | ~$10–15 sequential |
+| Full 216-cell sweep, parallelized across 4–8 H100s — not yet run | 216 | ~$600–1200 (project budget tier) |
 
-Per-cell cost = wall-clock × $1.79/3600. Per-cell wall-clock is dominated by
+Per-cell cost = wall-clock × $2.99/3600. Per-cell wall-clock is dominated by
 the 35-request replay + reconcile + thermal snapshot; the rate extremes
 (1 rps = 35 s wall-clock floor; 32 rps = queue depth + backpressure) bound
-the per-cell range.
+the per-cell range. The reduced sweep was 72 cells not 216 because vLLM
+serves one model per process; multi-model sweep requires separate vLLM
+procs (planned v1.1).
 
 **Resume safety.** `BenchMatrix.run_pending` (the default) skips any cell
 whose `<cell_id>.json` already exists in `output_dir`. Kill the sweep at
@@ -265,6 +270,13 @@ bench/results/runpod_pilot/
 ├── colocated__qwen2.5-7b__rate-4__chat.json
 ├── colocated__qwen2.5-7b__rate-8__chat.json
 └── summary.json          # campaign + SummaryStats + per-topology + cost
+
+bench/results/runpod_full/
+├── colocated__qwen2.5-7b__rate-{1,2,4,8,16,32}__{chat,rag,agentic}.json  # 24 cells
+├── chunked__qwen3-1.7b__rate-{1,2,4,8,16,32}__chat.json                  # 6 cells
+├── colocated__qwen3-30b__rate-{1,2,4,8,16,32}__chat.json                  # 6 cells
+├── ... 48 stub cells (success_rate=0 — agentic + RAG fully failed) ...
+└── summary.json
 ```
 
 `summary.json` carries `campaign` (`n_cells_completed`, `n_cells_failed`,
