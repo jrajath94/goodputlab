@@ -17,7 +17,6 @@ from bench.schema.cell_schema import (
     Topology,
 )
 
-
 # ---------- CellSpec ----------
 
 
