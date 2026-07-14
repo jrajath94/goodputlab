@@ -49,7 +49,21 @@ In-progress additions since v0.1.0 (not yet released as a tagged version):
   (`reconcile_passes=False`, `mean_ttft_ms=0`) previously diluted
   averages and silently masked performance. Added `n_cells_reconciled`
   to expose the sample size. 4 new tests pin the new contract.
-- **Test count: 354 passed, 25 skipped, 93% coverage** (was 343/25/93%).
+- **Runpod_full TTFT-vs-rate curves** (`bench/figures.py` +
+  `bench/figures/runpod_full_ttft_chat.png`): one line per topology
+  showing TTFT against arrival rate (log2 x-axis, 1→32 rps), chat mix.
+  Generated from the reconciled cells in `bench/results/runpod_full/` so
+  the curve matches what was actually measured (no zero-stubs drawn).
+  `plot_runpod_full_curves()` skips topologies with <2 reconciled cells
+  — colocated + chunked only for chat in this sweep. Topologies absent
+  from the curve (disagg, disagg_tier) had 0 measurements; see
+  `bench/results/runpod_full/README.md` for the coverage table.
+  Replaces two orphan PNGs (`runpod_full_ttft.png`,
+  `runpod_full_topo.png`) that had no generator script. 7 new tests
+  pin the loader (filters stub cells + malformed JSON + non-cell
+  files) and the plotter (one line per topo, single-point → None,
+  per-mix filtering, sort by rate).
+- **Test count: 361 passed, 25 skipped, 93% coverage** (was 354/25/93%).
 
 _(formal v0.2.0 release pending — see v1.1 follow-ups in
 `bench/results/runpod_full/README.md` for the open work: RAG/agentic

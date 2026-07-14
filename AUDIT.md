@@ -14,7 +14,7 @@ something is "real", a path and a test exist.
 | Domain                  | LLM inference control plane (P/D disagg)      |
 | Audience                | Anthropic Staff/Sr Inference / Perf roles     |
 | Maturity                | v0.1.0 released (2026-07-09)                  |
-| Test count              | 354 passed, 25 skipped (pytest)               |
+| Test count              | 361 passed, 25 skipped (pytest)               |
 | Coverage                | 93 % line (library code; scripts excluded)     |
 | Lint                    | ruff clean (format + lint)                    |
 | Type check              | mypy strict clean (31 source files)           |
@@ -28,7 +28,7 @@ something is "real", a path and a test exist.
 
 > Note: AUDIT.md was last refreshed on 2026-07-14; the test count,
 > coverage, and test-file count above reflect 2026-07-14 pytest
-> output (354 pass / 25 skip / 93% coverage / 39 test files /
+> output (361 pass / 25 skip / 93% coverage / 39 test files /
 > ~6500 LOC). Library + bench LOC and the per-module coverage table
 > below still need re-measurement for a fresh snapshot.
 
