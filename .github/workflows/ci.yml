@@ -82,7 +82,7 @@ jobs:
 
       - name: Validate commit subjects
         env:
-          PATTERN: '^(feat|fix|perf|test|docs|refactor|bench|ci|chore)(\(.+\))?!?: .{1,72}$'
+          PATTERN: '^(feat|fix|perf|test|docs|refactor|bench|ci|style|chore)(\(.+\))?!?: .{1,72}$'
         run: |
           set -euo pipefail
           bad=0

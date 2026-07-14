@@ -17,6 +17,8 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 - `refactor`: Code refactoring without behavioral change
 - `bench`: Benchmark changes
 - `ci`: CI/CD pipeline changes
+- `style`: Formatting/whitespace-only changes (ruff format, isort
+  reorder, blank-line cleanup). No behavior change.
 - `chore`: Routine tasks (cleanup, deps)
 
 **Subject:**
