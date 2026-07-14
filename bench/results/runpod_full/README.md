@@ -34,20 +34,32 @@
 
 **All 24 agentic cells AND all 24 RAG cells (every rate × every topology,
 every model) returned success_rate=0.0 with TTFT=0.** Only the 24 chat
-cells produced real measurements. Likely causes:
+cells produced real measurements. Root cause confirmed by code inspection
+(post-sweep, no ssh access to pod):
 
-1. **Prompt length overflows vLLM.** Both agentic and RAG trace
-   generators prepend long context chunks; with max_model_len=4096,
-   prompt + output tokens can exceed the limit and vLLM rejects the
-   request. The bench records 0 because no telemetry came back.
-2. **Long-context prompts may contain characters or sequences that
-   break the streaming SSE parser** in `loadgen/sse.py`.
+1. **RAG prompt overflows vLLM `--max-model-len=4096` by ~4×.** From
+   `loadgen/rag.py:38` — `n_corpus_docs=8` ×
+   `doc_tokens_range=(1000, 4000)` × `include_fraction=0.8` =
+   ~16,000 prompt tokens average, plus query + output ≈ 16,500 total.
+   vLLM rejects at admission; `success_rate=0`, `gpu_util_pct=0`,
+   `duration_s≈7.7s` (the rejected round-trip wall time).
+2. **Agentic prompt overflows borderline.** From `loadgen/agentic.py:51` —
+   `history_tokens_range=(500, 4000)` + tool defs + output 100-1000
+   can reach 5,000+ tokens, also over 4096 limit.
+3. **SSE parser is fine.** `loadgen/sse.py` skips malformed lines
+   silently — failure is upstream at vLLM admission, not parsing.
+4. **Telemetry gap.** `CellResult` records `success_rate=0` but does NOT
+   capture error reason (e.g., HTTP 400 with "context length exceeded").
+   Fixing this would help future sweeps diagnose without re-running.
 
 The bench did NOT silently mask this — `reconcile_passes=False` for
 every agentic and RAG cell, so `summary.json` reports it correctly.
-Fixing both workloads is a separate task (lower bound: increase vLLM
-`--max-model-len` to 8192, shorten prompts in `loadgen/rag.py` and
-`loadgen/agentic.py`, or audit the SSE parser).
+Fix options for v1.1:
+
+- Bump vLLM `--max-model-len` to 16384 (covers RAG, costs HBM)
+- Reduce `loadgen/rag.py` doc count or `doc_tokens_range`
+- Add `error_kind` field to `RequestTelemetry` so rejected cells
+  report why (no re-run needed to diagnose)
 
 ## What worked (chat only — only mix with reconciled cells)
 
@@ -89,11 +101,15 @@ instances + NIXL UCX (planned v1.1).
 
 ## What's next (v1.1)
 
-1. Fix agentic + RAG workloads (long prompts / SSE parser) — both
-   returned 0% success in this run
-2. True DISAGG: separate prefill + decode vLLM instances + NIXL UCX —
+1. **RAG fix:** bump vLLM `--max-model-len` to 16384 OR reduce
+   `loadgen/rag.py` `n_corpus_docs` / `doc_tokens_range`. Root cause
+   documented above (4× overflow on current config).
+2. **Agentic fix:** borderline overflow — same options.
+3. **Telemetry gap:** add `error_kind` field to `RequestTelemetry`
+   so future sweeps capture HTTP 400 reason without re-running.
+4. **True DISAGG:** separate prefill + decode vLLM instances + NIXL UCX —
    36 disagg cells produced 0 measurements
-3. Investigate vLLM multi-model serving behavior — 3 models labelled,
+5. **Investigate vLLM multi-model serving:** 3 models labelled,
    24 cells reconciled across all 3; need to confirm what was actually
    served per request vs what was labelled
-4. Failure drill appendix (router reject, KV stall, thermal throttle)
+6. **Failure drill appendix** (router reject, KV stall, thermal throttle)
