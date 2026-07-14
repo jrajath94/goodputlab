@@ -28,7 +28,7 @@ First end-to-end bench on real H100 SXM. 2 cells, ~$0.01 GPU cost.
 
 - Per-cell wall: 4-11s (warmup + measure)
 - Total sweep wall: 15.6s
-- Bench cost: $0.0079 (15.6s × $1.79/hr ÷ 3600)
+- Bench cost: $0.0130 (15.6s × $2.99/hr ÷ 3600) — was incorrectly stated as $0.0079 in earlier draft
 - Pod total (incl. vLLM install + model load): ~25 min, ~$1.25
 - **Effective bench cost per cell: ~$0.004**
 
@@ -44,14 +44,17 @@ First end-to-end bench on real H100 SXM. 2 cells, ~$0.01 GPU cost.
 
 1. **DISAGG topology** (P/D split, NIXL UCX KV transfer) — pilot only ran colocated.
 2. **DISAGG_TIER topology** (KV-tier with LMCache) — needs LMCache setup.
-3. **Multi-model** (qwen3-1.7b, qwen3-30b) — pilot only ran qwen2.5-7b.
-4. **RAG + agentic mixes** — pilot only ran chat.
-5. **Steady-state TTFT at 16+ rps** — pilot capped at 8 rps.
+3. ~~**Multi-model** (qwen3-1.7b, qwen3-30b) — pilot only ran qwen2.5-7b.~~ *Done in full sweep — see runpod_full/README.md (12 qwen3-1.7b + 6 qwen2.5-7b + 6 qwen3-30b reconciled).*
+4. **RAG + agentic mixes** — pilot only ran chat. *Full sweep also failed both — both at 0% success, see runpod_full README "Honest finding" section.*
+5. **Steady-state TTFT at 16+ rps** — pilot capped at 8 rps. *Full sweep covered rates up to 32 rps.*
 6. **Failure modes** (router reject, KV stall, nvidia-smi stall).
 
 ## Next step
 
-Full 216-cell matrix on H100 SXM: 4 × 3 × 6 × 3 = 216 cells.
-Estimated cost: $0.004/cell × 216 = **~$0.86** bench time (sequential).
-Plus ~$1.25 per pod × N pods (model load is the dominant cost).
-Realistic budget: $3-5 for single-pod sequential sweep at 4-8 min/cell.
+Full sweep ran (reduced to 72 cells, 3 models): see
+`bench/results/runpod_full/README.md`. 24/72 cells reconciled
+(chat-only mix; agentic + RAG both fully failed).
+Total cost: **$2.56** ($1.26 pilot + $1.30 full sweep).
+
+True DISAGG (separate prefill + decode vLLM + NIXL UCX) and a
+failure drill appendix remain the largest v1.1 follow-ups.
