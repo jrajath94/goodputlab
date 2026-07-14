@@ -1,0 +1,37 @@
+# GoodputLab RunPod matrix config — PILOT sweep.
+#
+# Sweep size: 1 topology (colocated) x 1 model (qwen2.5-7b) x 2 rates
+# (4, 8 rps) x 1 mix (chat) = 2 cells.
+#
+# Purpose: validate the full bench pipeline (trace -> vLLM -> metrics ->
+# CellResult JSON -> aggregator) end-to-end on real GPU before committing
+# to the full 216-cell campaign (~$600-1200 GPU spend).
+#
+# Estimated cost on H100 SXM spot @ $1.79/hr: ~$0.10 (2 cells x ~30s +
+# model load overhead of ~2 min).
+#
+# Run:    python -m scripts.run_matrix --config configs/runpod_matrix.yaml
+# Output: bench/results/runpod_pilot/<cell_id>.json + summary.json
+
+# --- sweep subset ---
+topologies: [colocated]
+models: [qwen2.5-7b]
+rates_rps: [4, 8]
+mixes: [chat]
+
+# --- per-cell load ---
+n_warmup: 5
+n_measure: 30
+
+# --- cost model ---
+# H100 SXM spot (RunPod) — update if renting a different class.
+cost_per_hour_usd: 1.79
+
+# --- output ---
+output_dir: bench/results/runpod_pilot
+pod_id: local-pilot  # set to actual RunPod pod id on real runs
+
+# --- vLLM endpoint (set via env on real pod) ---
+# The runner reads RUNPOD_VLLM_BASE_URL from the environment.
+# Default below is for in-cluster httpx ASGI transport (offline smoke).
+vllm_base_url_env: RUNPOD_VLLM_BASE_URL

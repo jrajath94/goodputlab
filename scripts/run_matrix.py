@@ -1,0 +1,144 @@
+"""Run the GoodputLab matrix sweep on a RunPod H100 pod.
+
+Loads a ``MatrixSweepConfig`` from YAML (see ``configs/runpod_matrix.yaml``),
+builds a :class:`BenchMatrix`, drives it through the cell pipeline, and
+writes a ``summary.json`` next to the per-cell JSONs.
+
+Usage::
+
+    # Pilot sweep (2 cells, ~$0.10):
+    python -m scripts.run_matrix --config configs/runpod_matrix.yaml
+
+    # Full 216-cell sweep:
+    python -m scripts.run_matrix --config configs/runpod_matrix_full.yaml
+
+Environment::
+
+    RUNPOD_VLLM_BASE_URL  — OpenAI-compatible endpoint, e.g.
+                            http://127.0.0.1:8000/v1 (in-cluster) or
+                            https://<pod-id>-8000.proxy.runpod.net/v1
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+from collections.abc import Callable
+
+from bench.cell_runner import NvidiaSmiThermalSource
+from bench.matrix_aggregator import write_summary
+from bench.runpod_matrix import BenchMatrix
+from bench.schema.matrix_config import load_matrix_config
+from loadgen.client import VllmHttpClient
+from loadgen.replay import ReplayRunner
+
+
+def _build_client_factory(
+    base_url: str, model_name: str, max_concurrent: int
+) -> Callable[[], VllmHttpClient]:
+    """Return a zero-arg ClientFactory that mints a fresh VllmHttpClient.
+
+    Each cell gets its own client so connection state from the prior cell
+    can't bleed into the next.  ``base_url`` should be the OpenAI-compatible
+    vLLM endpoint (e.g. ``http://127.0.0.1:8000/v1``).
+    """
+
+    def factory() -> VllmHttpClient:
+        return VllmHttpClient(
+            base_url=base_url,
+            model=model_name,
+            max_concurrent=max_concurrent,
+        )
+
+    return factory
+
+
+def _build_replay_factory() -> Callable[[VllmHttpClient], ReplayRunner]:
+    """Return a replay factory that wraps each fresh client in ReplayRunner."""
+
+    def factory(client: VllmHttpClient) -> ReplayRunner:
+        return ReplayRunner(client)
+
+    return factory
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run GoodputLab matrix sweep")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        required=True,
+        help="Path to MatrixSweepConfig YAML (e.g. configs/runpod_matrix.yaml)",
+    )
+    parser.add_argument(
+        "--model-name",
+        default="goodputlab-model",
+        help="vLLM model name (must match --served-model-name on the vLLM side)",
+    )
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=64,
+        help="Per-client max concurrent requests",
+    )
+    parser.add_argument(
+        "--run-all",
+        action="store_true",
+        help="Re-run every cell (default: skip cells with existing JSON)",
+    )
+    args = parser.parse_args(argv)
+
+    cfg = load_matrix_config(args.config)
+    matrix_spec = cfg.to_matrix_spec()
+    total_cells = matrix_spec.total_cells()
+    print(f"[run_matrix] sweep size: {total_cells} cells", flush=True)
+    print(
+        f"[run_matrix] topologies={cfg.topologies or 'ALL'} "
+        f"models={cfg.models or 'ALL'} "
+        f"rates_rps={cfg.rates_rps or 'ALL'} "
+        f"mixes={cfg.mixes or 'ALL'}",
+        flush=True,
+    )
+
+    base_url = os.environ.get(cfg.vllm_base_url_env)
+    if not base_url:
+        print(
+            f"[run_matrix] ERROR: env {cfg.vllm_base_url_env} not set. "
+            f"On RunPod: export RUNPOD_VLLM_BASE_URL=http://127.0.0.1:8000/v1",
+            file=sys.stderr,
+        )
+        return 2
+
+    print(f"[run_matrix] vLLM endpoint: {base_url}", flush=True)
+    print(f"[run_matrix] pod_id: {cfg.pod_id}", flush=True)
+    print(f"[run_matrix] output_dir: {cfg.output_dir}", flush=True)
+
+    matrix = BenchMatrix(
+        cells_dir=cfg.output_dir,
+        cost_per_hour_usd=cfg.cost_per_hour_usd,
+        pod_id=cfg.pod_id,
+        client_factory=_build_client_factory(base_url, args.model_name, args.max_concurrent),
+        replay_factory=_build_replay_factory(),
+        thermal=NvidiaSmiThermalSource(),
+        matrix_spec=matrix_spec,
+    )
+
+    report = matrix.run_all() if args.run_all else matrix.run_pending()
+    print(
+        f"[run_matrix] done: {report.n_cells_completed} completed, "
+        f"{report.n_cells_failed} failed, "
+        f"duration={report.total_duration_s:.1f}s, "
+        f"cost=${report.cost_usd:.4f}",
+        flush=True,
+    )
+
+    summary_path = write_summary(cfg.output_dir, report, cfg.cost_per_hour_usd)
+    print(f"[run_matrix] summary: {summary_path}", flush=True)
+    return 0 if report.n_cells_failed == 0 else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
