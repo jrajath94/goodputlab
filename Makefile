@@ -5,7 +5,7 @@
 SHELL := /usr/bin/env bash
 
 # All targets are recipes (no file prerequisites at the top level).
-.PHONY: install-dev lint test compose-config provision up-colocated up-chunked up-disagg up-disagg-tier down health sentinel ollama-smoke figures
+.PHONY: install-dev lint test compose-config provision up-colocated up-chunked up-disagg up-disagg-tier down health sentinel ollama-smoke figures sweep-report
 
 install-dev:
 	pip install -e ".[dev]"
@@ -66,3 +66,9 @@ ollama-smoke:
 # P5-4 — generate figures + cost table from bench/results/real/*.json
 figures:
 	python3 -m bench.figures
+
+# Sweep completion diagnostic — exits non-zero if cells are missing.
+# Usage: make sweep-report CONFIG=configs/runpod_matrix_full.yaml CELLS=bench/results/runpod_full
+sweep-report:
+	@test -n "$(CONFIG)" || { echo "CONFIG= required, e.g. configs/runpod_matrix_full.yaml"; exit 2; }
+	python3 -m scripts.sweep_report --config $(CONFIG) $(if $(CELLS),--cells-dir $(CELLS),)

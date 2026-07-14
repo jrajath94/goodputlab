@@ -149,11 +149,11 @@ See `bench/results/runpod_pilot/README.md` for full table.
 
 ## Measured numbers — 72-cell reduced sweep (2026-07-14)
 
-4 topologies × qwen2.5-7b × 6 rates × 3 mixes. **24/72 reconciled**
-(chat mix only — agentic + RAG fully failed due to ~4× prompt
-overflow on vLLM `--max-model-len=4096`). DISAGG / DISAGG_TIER cells
-returned 0% success (label-only, single vLLM in this run — true DISAGG
-requires separate prefill + decode processes).
+1×H100 SXM pod, 26 min wall. **24/72 cells reconciled** (chat mix only —
+agentic + RAG fully failed due to ~4× prompt overflow on vLLM
+`--max-model-len=4096`). DISAGG / DISAGG_TIER cells never attempted:
+sweep was interrupted mid-run after colocated×3 models + chunked×1
+model (72 total). See `bench/matrix_report` for the gap diagnosis.
 
 Mean TTFT (24 reconciled, chat-only): **197.55 ms**
 Mean ITL (24 reconciled, chat-only): **8.39 ms**
