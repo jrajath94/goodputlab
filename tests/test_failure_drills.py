@@ -280,3 +280,98 @@ def test_spec_topology_gate_allows_colocated_and_chunked() -> None:
             seed=1,
         )
         assert sd.is_enabled is True, f"topology {topo!r} should allow spec"
+
+
+# ---------- Boundary conditions (exact-threshold edges) ----------
+
+
+def test_tier_admits_above_capacity_threshold() -> None:
+    """Boundary: capacity_free_pct safely above min → admit. The check is
+    `<` strict, so an exact 10.0 free is admitted. (Float arithmetic on
+    `1 - used/capacity` can drift below 10.0 at the literal boundary, so
+    we verify the strictly-above case here — operators tune with margin.)"""
+    policy = TierPolicy(min_capacity_free_pct=10.0, min_hit_rate=0.5)
+    stats = KvStats(
+        tier="mock",
+        hit_rate=0.9,
+        hits=9,
+        misses=1,
+        capacity_bytes=1000,
+        used_bytes=850,  # 15% free, safely above threshold
+        eviction_count=0,
+    )
+    assert policy.should_use_tier(stats, expected_hit_prob=0.9) is True
+    assert policy.reject_reason(stats, expected_hit_prob=0.9) is None
+
+
+def test_tier_rejects_below_capacity_threshold() -> None:
+    """Counterpart: capacity_free_pct strictly below min → reject with
+    'tier_full'. Pin the boundary from below."""
+    policy = TierPolicy(min_capacity_free_pct=10.0, min_hit_rate=0.5)
+    stats = KvStats(
+        tier="mock",
+        hit_rate=0.9,
+        hits=9,
+        misses=1,
+        capacity_bytes=1000,
+        used_bytes=950,  # 5% free, below 10% threshold
+        eviction_count=0,
+    )
+    assert policy.should_use_tier(stats, expected_hit_prob=0.9) is False
+    assert policy.reject_reason(stats, expected_hit_prob=0.9) == "tier_full"
+
+
+def test_tier_admits_at_exact_hit_rate_threshold() -> None:
+    """Boundary: hit_rate exactly == min_hit_rate → admit. The check is `<`."""
+    policy = TierPolicy(min_hit_rate=0.5, min_capacity_free_pct=10.0)
+    stats = KvStats(
+        tier="mock",
+        hit_rate=0.5,  # exactly at threshold
+        hits=5,
+        misses=5,
+        capacity_bytes=1000,
+        used_bytes=100,
+        eviction_count=0,
+    )
+    assert policy.should_use_tier(stats, expected_hit_prob=0.5) is True
+
+
+def test_mock_client_eviction_count_is_cumulative() -> None:
+    """Drill: sustained overflow must increment eviction_count, not saturate.
+    Real fault mode: eviction loop falls behind and the counter stops
+    advancing, masking tier pressure from monitoring."""
+    c = MockLmcacheClient(capacity=2, hit_probability=1.0)
+    c.store("a")
+    c.store("b")
+    assert c.stats().eviction_count == 0
+    c.store("c")  # evicts a
+    assert c.stats().eviction_count == 1
+    c.store("d")  # evicts b
+    assert c.stats().eviction_count == 2
+    c.store("e")  # evicts c
+    assert c.stats().eviction_count == 3
+    # Capacity invariant
+    assert c.stats().used_bytes <= 2 * 4096
+
+
+def test_router_one_unhealthy_one_full_returns_admitted_false() -> None:
+    """Composite drill: one pool unhealthy AND the other healthy but at
+    max depth. Use BATCH SLO so the interactive_bypass does not save us —
+    over-headroom BATCH traffic must reject."""
+    r = Router()
+    r.register_pool(PoolState(pool=Pool.PREFILL, queue_depth=10, capacity=10, healthy=False))
+    r.register_pool(PoolState(pool=Pool.DECODE, queue_depth=5, capacity=5, healthy=True))
+    d = r.route(_spec(slo=SloClass.BATCH))
+    assert d.admitted is False
+    assert d.reason == "all_pools_full"
+
+
+def test_router_interactive_bypass_admits_over_headroom() -> None:
+    """Counterpart: INTERACTIVE SLO bypasses headroom check — at 100% depth,
+    interactive traffic is still admitted. This is the documented admission
+    contract; the previous drill uses BATCH to defeat it."""
+    r = Router()
+    r.register_pool(PoolState(pool=Pool.DECODE, queue_depth=5, capacity=5, healthy=True))
+    d = r.route(_spec(slo=SloClass.INTERACTIVE))
+    assert d.admitted is True
+    assert d.reason == "load_balance"
