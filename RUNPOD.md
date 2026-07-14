@@ -1,8 +1,13 @@
 # RunPod Cost Plan — Real Benchmark Campaign
 
-> **Status: PENDING USER APPROVAL.** All bench numbers in the repo are
-> currently `[DRY-RUN]` / `[NOT YET MEASURED]`. This document is the
-> cost gate before any real RunPod spend.
+> **Status: APPROVED + EXECUTED (2026-07-09 + 2026-07-14).** The
+> original 4×H100 multi-pod plan below was **deferred** in favour of a
+> cheaper 1×H100 single-pod sequential approach. Two sessions ran:
+> Run 1 (4 topologies × qwen2.5-7b × 30 reqs, $3.50) and the matrix
+> pipeline validation (pilot + 72-cell reduced sweep, total $2.56). The
+> 4×H100 multi-pod execution is planned for v1.1 once the RAG/agentic
+> prompt fix lands (see `bench/results/runpod_full/README.md` for the
+> v1.1 follow-up list).
 
 ## What the bench runs
 
@@ -19,7 +24,7 @@ topology:
 Plus 3 failure drills (P1 node kill, P5 KV stall, P12 prefix flood)
 per topology = 12 run slots.
 
-## Sizing per run
+## Sizing per run — 4×H100 plan (DEFERRED to v1.1)
 
 | Resource | Quantity | Why |
 |----------|----------|-----|
@@ -29,7 +34,7 @@ per topology = 12 run slots.
 | Storage | 1 TB NVMe | Model + LMCache tier |
 | Network | 10 Gbps intra-pod | NIXL transfers |
 
-## Cost estimate (USD, RunPod list pricing July 2026)
+## Cost estimate — 4×H100 plan (DEFERRED)
 
 | Item | Unit | Hours | Cost/hr | Subtotal |
 |------|------|-------|---------|----------|
@@ -43,7 +48,22 @@ per topology = 12 run slots.
 
 **Total spot: ~$289** (50% discount, risk: preemption)
 
-## Run schedule
+## Cost — 1×H100 actual runs (2026-07-09 + 2026-07-14)
+
+| Item | Cost | Duration | Notes |
+|---|---|---|---|
+| Run 1 (RunPod secure, 1×H100 SXM) | $3.50 | ~70 min | 30 reqs × 4 topologies, all reconciled |
+| Pilot matrix (1×H100) | $1.26 | ~25 min | 2 cells, all reconciled |
+| 72-cell reduced sweep (1×H100) | $1.30 | ~26 min | 24/72 reconciled; agentic+RAG broken |
+| **Total actual spend** | **$6.06** | ~2h | All measured on RunPod secure $2.99/hr |
+
+The 1×H100 approach covers Run 1 (canonical TTFT/ITL) and the matrix
+pipeline validation but cannot run true DISAGG (needs separate prefill
++ decode vLLM processes) or multi-model sweep (one model per vLLM
+process). Those limitations are documented in
+`bench/results/runpod_full/README.md`.
+
+## Run schedule — 4×H100 plan (DEFERRED)
 
 | Step | Duration | Description |
 |------|----------|-------------|
@@ -103,8 +123,8 @@ repo is `[NOT YET MEASURED]` per the integrity baseline.
 |---|---|---|---|---|---|---|
 | colocated | 30 | 100% | 76.5 | 127.3 | 6.38 | 1.00 |
 | chunked | 30 | 100% | 79.6 | 137.4 | 6.33 | 1.00 |
-| disagg | 30 | 100% | 77.2 | 126.5 | 6.31 | 1.00 |
-| disagg_tier | 30 | 100% | 69.6 | 111.6 | 6.18 | 1.00 |
+| disagg | 30 | 100% | 77.2 | 126.5 | 6.32 | 1.00 |
+| disagg_tier | 30 | 100% | 69.6 | 111.6 | 6.21 | 1.00 |
 
 **Honest finding**: at 4 RPS × 64-token prompts, all 4 topologies
 fall within ~10ms TTFT of each other. The expected staff-level
@@ -120,4 +140,24 @@ recorded across all runs (deterministic trace replays the same
 prefixes).
 
 Raw JSON: `bench/results/real/{colocated,chunked,disagg,disagg_tier,summary}.json`
-Pod session cost: ~$3.50 (70 min @ $2.99/hr on-demand)
+Pod session cost: $3.50 (70 min @ $2.99/hr on-demand)
+
+## Measured numbers — Pilot (2026-07-14)
+
+2-cell pilot on H100 SXM, qwen2.5-7b, chat mix. All reconciled.
+See `bench/results/runpod_pilot/README.md` for full table.
+
+## Measured numbers — 72-cell reduced sweep (2026-07-14)
+
+4 topologies × qwen2.5-7b × 6 rates × 3 mixes. **24/72 reconciled**
+(chat mix only — agentic + RAG fully failed due to ~4× prompt
+overflow on vLLM `--max-model-len=4096`). DISAGG / DISAGG_TIER cells
+returned 0% success (label-only, single vLLM in this run — true DISAGG
+requires separate prefill + decode processes).
+
+Mean TTFT (24 reconciled, chat-only): **197.55 ms**
+Mean ITL (24 reconciled, chat-only): **8.39 ms**
+Median TTFT: 120.83 ms; p95 TTFT: 493.42 ms
+
+See `bench/results/runpod_full/README.md` for the honest breakdown,
+including model coverage and per-topology tables.

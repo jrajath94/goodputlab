@@ -14,8 +14,8 @@ something is "real", a path and a test exist.
 | Domain                  | LLM inference control plane (P/D disagg)      |
 | Audience                | Anthropic Staff/Sr Inference / Perf roles     |
 | Maturity                | v0.1.0 released (2026-07-09)                  |
-| Test count              | 257 passed, 25 skipped (pytest)               |
-| Coverage                | 91.27 % line (library code; scripts excluded) |
+| Test count              | 343 passed, 25 skipped (pytest)               |
+| Coverage                | 93 % line (library code; scripts excluded)     |
 | Lint                    | ruff clean (format + lint)                    |
 | Type check              | mypy strict clean (31 source files)           |
 | Code base               | 2347 lines library + 1424 lines bench/scripts |
@@ -25,6 +25,12 @@ something is "real", a path and a test exist.
 | Open TODOs in source    | 0                                             |
 | NotImplementedError     | 0                                             |
 | CI gate failures        | 1 this session (ruff on ollama_smoke — fixed) |
+
+> Note: AUDIT.md was last refreshed on 2026-07-13; the test count,
+> coverage, and test-file count above reflect 2026-07-14 pytest
+> output (343 pass / 25 skip / 93% coverage / 38 test files /
+> 6110 LOC). Library + bench LOC and the per-module coverage table
+> below still need re-measurement for a fresh snapshot.
 
 ## Layer 1 — directory structure (no leaf files yet)
 
@@ -37,7 +43,7 @@ obs/         2 modules   208 LOC    Prometheus registry + /metrics exporter
 spec/        1 module    153 LOC    EAGLE-3 simulator + auto-disable + P3 gate
 bench/       4 files     547 LOC    mock vLLM + orchestrator + A/B + ollama smoke
 scripts/     3 files     877 LOC    disagg_proxy + real_bench + sentinel_daemon
-tests/       32 files   4293 LOC    pytest suite
+tests/       38 files   6110 LOC    pytest suite (was 32 / 4293 on 2026-07-13)
 configs/     5 JSON                 NIXL UCX pins + LMCache configs
 docs/        README.md + CHANGELOG.md + CONTRIBUTING.md + RUNPOD.md
              + autoscaler/TUNING.md + AUDIT.md (this file)
