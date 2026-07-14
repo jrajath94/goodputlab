@@ -105,7 +105,7 @@ python3 -m bench.ollama_smoke --model qwen3:8b --n 8
 pytest -q
 ```
 
-The unit suite ships 361 passing tests at 93 % line coverage and
+The unit suite ships 367 passing tests at 93 % line coverage and
 runs in under 60 seconds on a laptop. The Ollama-gated tests skip
 cleanly when `GOODPUTLAB_RUN_OLLAMA` is not set.
 

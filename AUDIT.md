@@ -14,7 +14,7 @@ something is "real", a path and a test exist.
 | Domain                  | LLM inference control plane (P/D disagg)      |
 | Audience                | Anthropic Staff/Sr Inference / Perf roles     |
 | Maturity                | v0.1.0 released (2026-07-09)                  |
-| Test count              | 361 passed, 25 skipped (pytest)               |
+| Test count              | 367 passed, 25 skipped (pytest)               |
 | Coverage                | 93 % line (library code; scripts excluded)     |
 | Lint                    | ruff clean (format + lint)                    |
 | Type check              | mypy strict clean (31 source files)           |
@@ -28,7 +28,7 @@ something is "real", a path and a test exist.
 
 > Note: AUDIT.md was last refreshed on 2026-07-14; the test count,
 > coverage, and test-file count above reflect 2026-07-14 pytest
-> output (361 pass / 25 skip / 93% coverage / 39 test files /
+> output (367 pass / 25 skip / 93% coverage / 39 test files /
 > ~6500 LOC). Library + bench LOC and the per-module coverage table
 > below still need re-measurement for a fresh snapshot.
 
@@ -92,13 +92,18 @@ tested (50 random ticks, never scale-down with in_flight > 0).
 | `arrival.py` | 168 | 93 %     | Poisson + ON/OFF + open-loop scheduler     |
 | `chat.py`    | 103 | 98 %     | multi-turn chat trace                       |
 | `rag.py`     | 118 | 98 %     | RAG with 80 % prefix overlap                |
-| `agentic.py` | 114 | 56 %     | agentic bursty ON/OFF                       |
+| `agentic.py` | 114 | 100 %    | agentic bursty ON/OFF                       |
 | `synth_text.py`| 120 | 95 %   | deterministic text padding                  |
 | `replay.py`  |  32 | 100 %    | deterministic replay driver                 |
 
 The 56 % on `agentic.py` is honest — agentic traces have a
 random-event table that is exercised in integration but not all
 branches are unit-tested. v1.1 should bring that up.
+
+_Update 2026-07-14: agentic.py is now 100% covered (7 tests in
+`test_agentic_generator.py` — validation, byte-identity, prefix
+monotonicity, ≥60% overlap, output_tokens range, on/off arrival,
+invalid config). The 56% above was a stale 2026-07-13 snapshot._
 
 ### `kv/` — LMCache tier
 
