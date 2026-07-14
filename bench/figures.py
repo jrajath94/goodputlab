@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections import defaultdict
 from pathlib import Path
 
 import matplotlib
@@ -49,8 +50,17 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 
 REAL_RESULTS_DIR = Path(__file__).parent / "results" / "real"
+RUNPOD_FULL_DIR = Path(__file__).parent / "results" / "runpod_full"
 FIGURES_DIR = Path(__file__).parent / "figures"
 TOPOS = ["colocated", "chunked", "disagg", "disagg_tier"]
+
+# Topology → colour for the curves. Stable so re-runs produce identical plots.
+TOPO_COLOURS = {
+    "colocated": "#4C72B0",
+    "chunked": "#55A868",
+    "disagg": "#C44E52",
+    "disagg_tier": "#8172B2",
+}
 
 # Cost model (documented; see module docstring for derivation)
 H100_SXM_SPOT_USD_PER_HR = 1.99
@@ -74,6 +84,43 @@ def load_results() -> dict[str, dict[str, float]]:
         if not path.exists():
             raise FileNotFoundError(f"missing Run 1 result: {path}")
         out[topo] = json.loads(path.read_text())
+    return out
+
+
+def load_runpod_full_cells(
+    cells_dir: Path = RUNPOD_FULL_DIR,
+) -> list[dict[str, float | int | str]]:
+    """Load reconciled CellResult JSONs from the runpod_full sweep.
+
+    Returns a flat list of dicts with ``topology``, ``model``, ``rate_rps``,
+    ``mix``, ``mean_ttft_ms``, ``mean_itl_ms``, ``success_rate``. Stub cells
+    (``reconcile_passes=False``) are filtered out — averaging their zeros
+    with real measurements would mask performance (see SummaryStats docstring
+    for the bug history).
+    """
+    out: list[dict[str, float | int | str]] = []
+    if not cells_dir.is_dir():
+        return out
+    for path in sorted(cells_dir.glob("*.json")):
+        if "__rate-" not in path.name:
+            continue  # skip summary.json etc.
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError:
+            continue
+        if not data.get("reconcile_passes", False):
+            continue
+        out.append(
+            {
+                "topology": data["topology"],
+                "model": data["model"],
+                "rate_rps": data["rate_rps"],
+                "mix": data["mix"],
+                "mean_ttft_ms": float(data["mean_ttft_ms"]),
+                "mean_itl_ms": float(data["mean_itl_ms"]),
+                "success_rate": float(data["success_rate"]),
+            }
+        )
     return out
 
 
@@ -185,6 +232,61 @@ def write_cost_table(results: dict[str, dict[str, float]]) -> tuple[Path, Path]:
 # ---------- Entry point ----------
 
 
+def plot_runpod_full_curves(
+    cells: list[dict[str, float | int | str]],
+    mix: str = "chat",
+) -> Path | None:
+    """TTFT-vs-rate curves per topology, one line per topology, chat-only.
+
+    Returns the output path, or None if no cells match. Skips topologies with
+    fewer than 2 reconciled cells (a single point cannot draw a line).
+    """
+    filtered = [c for c in cells if c["mix"] == mix]
+    if not filtered:
+        return None
+
+    by_topo: dict[str, list[tuple[int, float]]] = defaultdict(list)
+    for c in filtered:
+        by_topo[str(c["topology"])].append((int(c["rate_rps"]), float(c["mean_ttft_ms"])))
+    for topo in by_topo:
+        by_topo[topo].sort()  # by rate ascending
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    plotted_any = False
+    for topo in TOPOS:
+        pts = by_topo.get(topo, [])
+        if len(pts) < 2:
+            continue
+        rates = [p[0] for p in pts]
+        ttfts = [p[1] for p in pts]
+        ax.plot(
+            rates,
+            ttfts,
+            marker="o",
+            label=f"{topo} (n={len(pts)})",
+            color=TOPO_COLOURS[topo],
+        )
+        plotted_any = True
+    if not plotted_any:
+        plt.close(fig)
+        return None
+
+    ax.set_xscale("log", base=2)
+    ax.set_xticks([1, 2, 4, 8, 16, 32])
+    ax.set_xticklabels(["1", "2", "4", "8", "16", "32"])
+    ax.set_xlabel("Arrival rate (req/s)")
+    ax.set_ylabel("Mean TTFT (ms)")
+    ax.set_title(f"TTFT vs arrival rate — 72-cell sweep, mix={mix}")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+
+    out = FIGURES_DIR / f"runpod_full_ttft_{mix}.png"
+    fig.savefig(out, dpi=120)
+    plt.close(fig)
+    return out
+
+
 def main() -> None:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     results = load_results()
@@ -193,11 +295,18 @@ def main() -> None:
     itl_path = plot_itl(results)
     csv_path, md_path = write_cost_table(results)
 
+    cells = load_runpod_full_cells()
+    curve_path = plot_runpod_full_curves(cells)
+
     print("Generated:")
     print(f"  {ttft_path}")
     print(f"  {itl_path}")
     print(f"  {csv_path}")
     print(f"  {md_path}")
+    if curve_path is not None:
+        print(f"  {curve_path}")
+    else:
+        print("  (no runpod_full curve — <2 reconciled cells per topology)")
 
 
 if __name__ == "__main__":
@@ -208,12 +317,16 @@ __all__ = [
     "FIGURES_DIR",
     "H100_SXM_SPOT_USD_PER_HR",
     "REPLICAS",
+    "RUNPOD_FULL_DIR",
     "TOKENS_PER_SEC_PER_H100",
+    "TOPO_COLOURS",
     "TOPOS",
     "cost_per_million_tokens",
     "load_results",
+    "load_runpod_full_cells",
     "main",
     "plot_itl",
+    "plot_runpod_full_curves",
     "plot_ttft",
     "write_cost_table",
 ]
