@@ -34,8 +34,10 @@ Honest reading:
 
 Every cell above is reproducible from `bash scripts/health.sh all`
 plus the per-topology JSON in `bench/results/real/`. The full 4 × 3 ×
-6 × 3 = 216-cell matrix is deferred to v1.1 per the project's $100 GPU
-budget cap (see CHANGELOG §0.1).
+6 × 3 = 216-cell sweep pipeline ships (`bench/runpod_matrix.py` +
+`scripts/run_matrix.py`) and a 2-cell pilot exercises it on real GPU
+for ~$0.10; the full campaign is budget-deferred — see "216-cell
+matrix sweep" below.
 
 The Ollama local baseline (`bench/results/ollama/`, M1 Max with
 `qwen3:8b`) currently exposes a measurement hole in the streaming
@@ -209,6 +211,84 @@ python3 -m bench.ollama_smoke --model qwen3:8b --n 8
 # origin clean invariant (CI also runs this)
 bash scripts/check_origin_clean.sh
 ```
+
+## 216-cell matrix sweep
+
+The full sweep is 4 topologies × 3 models × 6 rates × 3 mixes = **216 cells**:
+
+| Dimension | Values |
+|---|---|
+| Topologies | `colocated`, `chunked`, `disagg`, `disagg_tier` |
+| Models | `qwen3-1.7b`, `qwen2.5-7b`, `qwen3-30b` |
+| Rates (rps) | 1, 2, 4, 8, 16, 32 |
+| Mixes | `chat`, `rag`, `agentic` |
+
+A **2-cell pilot** (`colocated × qwen2.5-7b × {4, 8 rps} × chat`) exercises
+the full bench pipeline end-to-end on real GPU before committing to the
+full campaign.
+
+**Pilot invocation:**
+
+```bash
+python -m scripts.run_matrix --config configs/runpod_matrix.yaml
+```
+
+The runner reads `RUNPOD_VLLM_BASE_URL` from the environment (default for
+in-cluster runs: `http://127.0.0.1:8000/v1`).
+
+**Cost on H100 SXM spot @ $1.79/hr:**
+
+| Phase | Cells | Cost |
+|---|---|---|
+| Per cell (model loaded, 35 reqs + reconcile + thermal) | 1 | ~$0.02–0.05 |
+| Per (topology, model) pair — vLLM warmup | 12 pairs | ~$0.06 each |
+| Pilot (2 cells, 1 model load) | 2 | ~$0.10 |
+| Full sweep, sequential on one H100 | 216 | ~$10–20 |
+| Full sweep, parallelized across 4–8 H100s | 216 | ~$600–1200 (project budget tier) |
+
+Per-cell cost = wall-clock × $1.79/3600. Per-cell wall-clock is dominated by
+the 35-request replay + reconcile + thermal snapshot; the rate extremes
+(1 rps = 35 s wall-clock floor; 32 rps = queue depth + backpressure) bound
+the per-cell range.
+
+**Resume safety.** `BenchMatrix.run_pending` (the default) skips any cell
+whose `<cell_id>.json` already exists in `output_dir`. Kill the sweep at
+cell 87 of 216, re-run with the same config, and cells 1–87 are skipped
+without re-firing requests. A corrupt or partial JSON self-heals on the
+next attempt (`CellRunner.run_cell` re-executes when `CellResult.model_validate_json`
+fails). Use `--run-all` to force a re-run (e.g. after a vLLM upgrade).
+
+**Output layout:**
+
+```
+bench/results/runpod_pilot/
+├── colocated__qwen2.5-7b__rate-4__chat.json
+├── colocated__qwen2.5-7b__rate-8__chat.json
+└── summary.json          # campaign + SummaryStats + per-topology + cost
+```
+
+`summary.json` carries `campaign` (`n_cells_completed`, `n_cells_failed`,
+`total_duration_s`, `cost_usd`, `pod_id`, timestamps), `summary`
+(`SummaryStats`: aggregate TTFT/ITL + reconcile/thermal counts),
+`per_topology` (mean TTFT/ITL, success rate, reconcile + thermal counts,
+total cost per topology), and `cost` (per-hour rate, cell count, total
+USD). Per-cell JSONs are immutable on success — re-running without
+`--run-all` is a no-op for completed cells.
+
+**Source files:**
+
+- [`bench/schema/cell_schema.py`](bench/schema/cell_schema.py) — `CellSpec`,
+  `CellResult`, `ThermalReading`, `SummaryStats`, `CampaignResult`
+- [`bench/cell_runner.py`](bench/cell_runner.py) — `CellRunner`,
+  `JsonCellSink`, `NvidiaSmiThermalSource`, `aggregate_metrics`
+- [`bench/matrix_aggregator.py`](bench/matrix_aggregator.py) — `aggregate`,
+  `per_topology_breakdown`, `write_summary`, `CampaignReport`
+- [`bench/runpod_matrix.py`](bench/runpod_matrix.py) — `BenchMatrix`,
+  `MatrixSpec` (216-cell defaults)
+- [`bench/schema/matrix_config.py`](bench/schema/matrix_config.py) —
+  `MatrixSweepConfig`, `load_matrix_config`
+- [`configs/runpod_matrix.yaml`](configs/runpod_matrix.yaml) — pilot config
+- [`scripts/run_matrix.py`](scripts/run_matrix.py) — entry point
 
 ## License
 

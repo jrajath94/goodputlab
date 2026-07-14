@@ -23,6 +23,7 @@ bench/results/*
 !bench/results/.gitkeep
 !bench/results/real/
 !bench/results/ollama/
+!bench/results/runpod_pilot/
 
 # Plan 01-01: protected secret filenames per PROJECT.md / USER CLAUDE.md
 openclaw.json

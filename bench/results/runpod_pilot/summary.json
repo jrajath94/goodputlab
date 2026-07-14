@@ -1,0 +1,35 @@
+{
+  "campaign": {
+    "n_cells_completed": 2,
+    "n_cells_failed": 0,
+    "total_duration_s": 15.641439570114017,
+    "cost_usd": 0.007850783872222222,
+    "pod_id": "local-pilot",
+    "started_at": "2026-07-14T03:30:57.564494Z",
+    "ended_at": "2026-07-14T03:31:13.353780Z"
+  },
+  "summary": {
+    "n_cells": 2,
+    "n_unreconciled": 0,
+    "n_thermal_warnings": 0,
+    "all_reconciled": true,
+    "mean_ttft_ms": 337.85172908571434,
+    "mean_itl_ms": 8.844902740561324
+  },
+  "per_topology": {
+    "colocated": {
+      "n_cells": 2,
+      "mean_ttft_ms": 337.85172908571434,
+      "mean_itl_ms": 8.844902740561324,
+      "success_rate": 1.0,
+      "n_unreconciled": 0,
+      "n_thermal_warnings": 0,
+      "total_cost_usd": 0.007777271341806692
+    }
+  },
+  "cost": {
+    "per_hour_usd": 1.79,
+    "n_cells": 2,
+    "total_usd": 0.007777271341806692
+  }
+}
