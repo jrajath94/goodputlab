@@ -1,0 +1,25 @@
+{
+  "cell_id": "colocated__qwen3-30b__rate-4__agentic",
+  "topology": "colocated",
+  "model": "qwen3-30b",
+  "rate_rps": 4,
+  "mix": "agentic",
+  "n_warmup": 5,
+  "n_measure": 30,
+  "seed": 316109513,
+  "mean_ttft_ms": 87.05290344444444,
+  "p95_ttft_ms": 134.38325179999998,
+  "mean_itl_ms": 6.6734771624636275,
+  "success_rate": 0.28125,
+  "cache_hit_rate": 0.0,
+  "reconcile_passes": false,
+  "thermal": {
+    "gpu_temp_c": 35,
+    "gpu_util_pct": 0,
+    "gpu_mem_used_mb": 74511,
+    "THERMAL_WARN_C": 80
+  },
+  "started_at": "2026-07-14T14:33:02.134756Z",
+  "duration_s": 8.718205142067745,
+  "notes": []
+}

@@ -1,0 +1,44 @@
+{
+  "campaign": {
+    "n_cells_completed": 24,
+    "n_cells_failed": 48,
+    "total_duration_s": 915.1676052971743,
+    "cost_usd": 1.2615706758035554,
+    "pod_id": "uqcvvcm6vl4rk5",
+    "started_at": "2026-07-14T14:22:15.008079Z",
+    "ended_at": "2026-07-14T14:37:33.956050Z"
+  },
+  "summary": {
+    "n_cells": 72,
+    "n_unreconciled": 48,
+    "n_thermal_warnings": 0,
+    "all_reconciled": false,
+    "mean_ttft_ms": 101.23470538315654,
+    "mean_itl_ms": 5.0675960487367515
+  },
+  "per_topology": {
+    "chunked": {
+      "n_cells": 18,
+      "mean_ttft_ms": 129.44124432753358,
+      "mean_itl_ms": 5.10083690321122,
+      "success_rate": 0.46583743598449484,
+      "n_unreconciled": 12,
+      "n_thermal_warnings": 0,
+      "total_cost_usd": 0.19094085518714016
+    },
+    "colocated": {
+      "n_cells": 54,
+      "mean_ttft_ms": 91.83252573503087,
+      "mean_itl_ms": 5.0565157639119285,
+      "success_rate": 0.45249528867828587,
+      "n_unreconciled": 36,
+      "n_thermal_warnings": 0,
+      "total_cost_usd": 0.5691566836569019
+    }
+  },
+  "cost": {
+    "per_hour_usd": 2.99,
+    "n_cells": 72,
+    "total_usd": 0.7600975388440421
+  }
+}

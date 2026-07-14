@@ -24,6 +24,7 @@ bench/results/*
 !bench/results/real/
 !bench/results/ollama/
 !bench/results/runpod_pilot/
+!bench/results/runpod_full/
 
 # Plan 01-01: protected secret filenames per PROJECT.md / USER CLAUDE.md
 openclaw.json
