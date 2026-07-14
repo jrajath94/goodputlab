@@ -1,0 +1,54 @@
+# GoodputLab RunPod matrix config — FULL 216-cell sweep.
+#
+# Sweep size: 4 topologies (colocated, chunked, disagg, disagg_tier)
+#             x 3 models (qwen3-1.7b, qwen2.5-7b, qwen3-30b)
+#             x 6 rates (1, 2, 4, 8, 16, 32 rps)
+#             x 3 mixes (chat, rag, agentic)
+#           = 216 cells
+#
+# Topology notes:
+#   - colocated  : vLLM default single-pool. Always runnable.
+#   - chunked    : vLLM --enable-chunked-prefill. No extra setup needed.
+#   - disagg     : vLLM P/D disaggregation w/ NIXL UCX. Needs prefill +
+#                  decode vLLM instances on separate ports.
+#   - disagg_tier: LMCache KV tier in addition to disagg. Most setup.
+#
+# NOTE: For the first full sweep, recommend limiting topologies to
+# [colocated, chunked] and models to [qwen2.5-7b, qwen3-30b] for cost
+# control. DISAGG/DISAGG_TIER require additional vLLM instances — see
+# deploy/ for setup scripts (WIP).
+#
+# Estimated cost on H100 SXM secure @ $2.99/hr:
+#   - Pilot data: 0.004 USD/cell x 216 cells = ~$0.86 bench time
+#   - Single-pod sequential (~30s/cell avg): ~108 min = ~$5.38
+#   - Plus ~3 min vLLM model load + 1 warmup per model = ~10 min = ~$0.50
+#   - TOTAL realistic: ~$6 single-pod
+#
+# Run:    python -m scripts.run_matrix --config configs/runpod_matrix_full.yaml
+# Output: bench/results/runpod_full/<cell_id>.json + summary.json
+
+# --- sweep subset ---
+# FULL 216-cell sweep. All 4 topologies (incl DISAGG/DISAGG_TIER — these
+# use the same single vLLM instance as colocated/chunked in this run; the
+# topology label is recorded in CellResult but the runtime config is
+# effectively "vLLM with chunked prefill on"). True DISAGG (separate
+# prefill + decode instances + NIXL UCX) is planned for v1.1.
+topologies: [colocated, chunked, disagg, disagg_tier]
+models: [qwen3-1.7b, qwen2.5-7b, qwen3-30b]
+rates_rps: [1, 2, 4, 8, 16, 32]
+mixes: [chat, rag, agentic]
+
+# --- per-cell load ---
+n_warmup: 5
+n_measure: 30
+
+# --- cost model ---
+# H100 SXM secure (RunPod) — update if renting a different class.
+cost_per_hour_usd: 2.99
+
+# --- output ---
+output_dir: bench/results/runpod_full
+pod_id: local-full  # set to actual RunPod pod id on real runs
+
+# --- vLLM endpoint (set via env on real pod) ---
+vllm_base_url_env: RUNPOD_VLLM_BASE_URL
