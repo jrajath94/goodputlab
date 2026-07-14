@@ -37,6 +37,19 @@ In-progress additions since v0.1.0 (not yet released as a tagged version):
   `bench/results/runpod_pilot/README.md` (cost math + next-step staleness),
   and top-level `README.md` (test counts + cost rates + full-sweep status).
   Figures regenerated from honest per-cell aggregates.
+- **Sweep completion diagnostic** (`bench/matrix_report.py` +
+  `scripts/sweep_report.py`): given a MatrixSpec + cells_dir, reports
+  expected/on-disk/missing counts and per-topology gaps. Catches future
+  interruptions (the runpod_full DISAGG/DISAGG_TIER gap was first visible
+  via this tool) without manual JSON tallying. CLI exits non-zero on
+  any gap, suitable for post-sweep CI gating. 8 new tests, 100% covered.
+- **Aggregator stub-cell fix** (`bench/schema/cell_schema.py` +
+  `bench/matrix_aggregator.py`): `SummaryStats.from_results` now
+  computes latency means over the **reconciled** subset only — stub cells
+  (`reconcile_passes=False`, `mean_ttft_ms=0`) previously diluted
+  averages and silently masked performance. Added `n_cells_reconciled`
+  to expose the sample size. 4 new tests pin the new contract.
+- **Test count: 354 passed, 25 skipped, 93% coverage** (was 343/25/93%).
 
 _(formal v0.2.0 release pending — see v1.1 follow-ups in
 `bench/results/runpod_full/README.md` for the open work: RAG/agentic

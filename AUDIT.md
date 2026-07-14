@@ -14,22 +14,22 @@ something is "real", a path and a test exist.
 | Domain                  | LLM inference control plane (P/D disagg)      |
 | Audience                | Anthropic Staff/Sr Inference / Perf roles     |
 | Maturity                | v0.1.0 released (2026-07-09)                  |
-| Test count              | 343 passed, 25 skipped (pytest)               |
+| Test count              | 354 passed, 25 skipped (pytest)               |
 | Coverage                | 93 % line (library code; scripts excluded)     |
 | Lint                    | ruff clean (format + lint)                    |
 | Type check              | mypy strict clean (31 source files)           |
 | Code base               | 2347 lines library + 1424 lines bench/scripts |
-| Test code               | 4293 lines across 32 files                    |
-| Test:code ratio         | 1.14                                          |
+| Test code               | 6032 lines across 39 files                    |
+| Test:code ratio         | 1.62                                          |
 | Conventional commits    | clean history (every commit a single type)    |
 | Open TODOs in source    | 0                                             |
 | NotImplementedError     | 0                                             |
 | CI gate failures        | 1 this session (ruff on ollama_smoke — fixed) |
 
-> Note: AUDIT.md was last refreshed on 2026-07-13; the test count,
+> Note: AUDIT.md was last refreshed on 2026-07-14; the test count,
 > coverage, and test-file count above reflect 2026-07-14 pytest
-> output (343 pass / 25 skip / 93% coverage / 38 test files /
-> 6110 LOC). Library + bench LOC and the per-module coverage table
+> output (354 pass / 25 skip / 93% coverage / 39 test files /
+> ~6500 LOC). Library + bench LOC and the per-module coverage table
 > below still need re-measurement for a fresh snapshot.
 
 ## Layer 1 — directory structure (no leaf files yet)
