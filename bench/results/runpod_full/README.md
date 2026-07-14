@@ -115,9 +115,15 @@ run disagg/disagg_tier and did not produce multi-model chunked cells.
 2. **Agentic fix:** borderline overflow — same options.
 3. **Telemetry gap:** add `error_kind` field to `RequestTelemetry`
    so future sweeps capture HTTP 400 reason without re-running.
-4. **DISAGG / DISAGG_TIER never attempted:** orchestrator did not
-   produce any cells for those topologies. Investigate why
-   (silent skip? configuration missing?) and re-run.
+4. **DISAGG / DISAGG_TIER never attempted:** sweep interrupted
+   mid-run before reaching those topologies. Order from
+   `MatrixSpec.cells()` is `for topo: for model: for rate: for mix`;
+   on-disk tally shows colocated × all 3 models completed (54),
+   chunked × qwen3-1.7b completed (18), then sweep stopped before
+   chunked × qwen2.5-7b started. DISAGG / DISAGG_TIER were never
+   reached. NOT a silent-skip bug in the orchestrator — re-running
+   `run_pending` would resume from chunked × qwen2.5-7b and pick up
+   the remaining cells. To validate, see `bench/matrix_report.py`.
 5. **True DISAGG:** separate prefill + decode vLLM instances + NIXL UCX.
 6. **Multi-model coverage gap:** only qwen3-1.7b ran chunked;
    qwen2.5-7b + qwen3-30b only ran colocated. Either extend sweep
