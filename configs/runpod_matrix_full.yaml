@@ -28,13 +28,15 @@
 # Output: bench/results/runpod_full/<cell_id>.json + summary.json
 
 # --- sweep subset ---
-# FULL 216-cell sweep. All 4 topologies (incl DISAGG/DISAGG_TIER — these
-# use the same single vLLM instance as colocated/chunked in this run; the
-# topology label is recorded in CellResult but the runtime config is
-# effectively "vLLM with chunked prefill on"). True DISAGG (separate
-# prefill + decode instances + NIXL UCX) is planned for v1.1.
+# Cost-controlled first run: single model (qwen2.5-7b), 4 topologies, 6
+# rates, 3 mixes = 72 cells. vLLM serves one model per process; multi-model
+# sweep needs separate vLLM instances (planned v1.1).
+#
+# Topology caveat: colocated/chunked use vLLM defaults. DISAGG/DISAGG_TIER
+# use the SAME single vLLM instance in this run (label-only); true DISAGG
+# needs separate prefill + decode + NIXL UCX setup (planned v1.1).
 topologies: [colocated, chunked, disagg, disagg_tier]
-models: [qwen3-1.7b, qwen2.5-7b, qwen3-30b]
+models: [qwen2.5-7b]
 rates_rps: [1, 2, 4, 8, 16, 32]
 mixes: [chat, rag, agentic]
 
