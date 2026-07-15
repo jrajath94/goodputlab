@@ -20,6 +20,7 @@ Metric inventory:
 | goodputlab_request_total            | Counter   | status_code    |
 | goodputlab_request_error_total      | Counter   | error_class    |
 | goodputlab_reconcile_gate_passes_total | Counter | —              |
+| goodputlab_cache_no_history_total       | Counter | —              |
 """
 
 from __future__ import annotations
@@ -118,6 +119,11 @@ class MetricsRegistry:
             "Bench runs whose client/server reconciliation passed",
             registry=self.registry,
         )
+        self.no_history = Counter(
+            "goodputlab_cache_no_history_total",
+            "Router lookups that found no prior prefix entry (cold-cache regime)",
+            registry=self.registry,
+        )
 
     # ---------- Recording helpers (typed wrappers) ----------
 
@@ -153,6 +159,9 @@ class MetricsRegistry:
 
     def inc_gate_pass(self) -> None:
         self.reconcile_gate_passes.inc()
+
+    def inc_no_history(self) -> None:
+        self.no_history.inc()
 
 
 __all__ = ["MetricsRegistry"]

@@ -27,6 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from control.pool import Pool, PoolState
 from core.trace import RequestSpec, SloClass, WorkloadType
+from obs.registry import MetricsRegistry
 
 
 class AdmissionPolicy(BaseModel):
@@ -88,6 +89,7 @@ class Router:
         policy: AdmissionPolicy | None = None,
         prefix_cache_size: int = 1024,
         salt_for_pool: Callable[[Pool], bytes] | None = None,
+        metrics: MetricsRegistry | None = None,
     ) -> None:
         self._policy = policy or AdmissionPolicy()
         self._cache_max = prefix_cache_size
@@ -96,6 +98,11 @@ class Router:
         self._salt_for_pool: Callable[[Pool], bytes] = salt_for_pool or (lambda _p: b"")
         self._prefix_cache: OrderedDict[str, Pool] = OrderedDict()
         self._pools: dict[Pool, PoolState] = {}
+        # Optional metrics handle.  When provided, the router increments
+        # ``goodputlab_cache_no_history_total`` for each cold-cache lookup
+        # (P7 / RTR-04: dual-regime reporting).  When ``None`` the router
+        # routes without emitting any telemetry.
+        self._metrics = metrics
 
     # ---------- Pool registry ----------
 
@@ -149,6 +156,13 @@ class Router:
                     prefix_hash=key,
                 )
             # Cache hit but pool is full → fall through to load-balance.
+
+        # Cold-cache regime: the prefix key has no prior history.  Record
+        # this in telemetry so callers can bin cold vs warm lookups (P7
+        # / RTR-04 dual-regime reporting).  Falls through to load-balance
+        # below when no cached entry accepted the request.
+        if self._metrics is not None:
+            self._metrics.inc_no_history()
 
         if chosen_pool is None:
             # No pool can admit this request (all unhealthy or all over headroom).
