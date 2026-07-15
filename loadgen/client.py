@@ -143,6 +143,7 @@ class VllmHttpClient:
 
         return RequestTelemetry(
             request_id=spec.request_id,
+            prompt_tokens=spec.prompt_tokens,
             enqueue_ts_ns=enqueue_ts,
             ttft_ms=ttft_ms,
             per_token_ts_ns=per_token,

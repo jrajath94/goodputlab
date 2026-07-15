@@ -74,12 +74,14 @@ def test_vllm_mean_latency_s_returns_zero_when_no_count() -> None:
 
 def _tel(
     rid: str = "r",
+    prompt_tokens: int = 20,
     status: int = 200,
     ttft_ms: float | None = 50.0,
     n_tokens: int = 10,
 ) -> RequestTelemetry:
     return RequestTelemetry(
         request_id=rid,
+        prompt_tokens=prompt_tokens,
         enqueue_ts_ns=0,
         ttft_ms=ttft_ms,
         per_token_ts_ns=[i + 1 for i in range(n_tokens)],
@@ -92,28 +94,42 @@ def _tel(
 
 def test_reconcile_zero_delta_when_metrics_match() -> None:
     """Synthesize a vLLM body that matches client-side aggregates exactly."""
-    client = [_tel(rid=f"r{i}", ttft_ms=50.0, n_tokens=10) for i in range(4)]
-    # 4 successes, 40 completion tokens, mean TTFT 50ms = 0.05s
+    client = [_tel(rid=f"r{i}", prompt_tokens=20, ttft_ms=50.0, n_tokens=10) for i in range(4)]
+    # 4 successes, 80 prompt tokens, 40 completion tokens, mean TTFT 50ms = 0.05s
     text = (
         "vllm:request_success_total 4\n"
-        "vllm:prompt_tokens_total 0\n"
+        "vllm:prompt_tokens_total 80\n"
         "vllm:generation_tokens_total 40\n"
         "vllm:time_to_first_token_seconds_sum 0.2\n"
         "vllm:time_to_first_token_seconds_count 4\n"
     )
     report = reconcile(client, text, window_s=60.0)
     assert report.success_count_delta_pct == 0.0
+    assert report.prompt_tokens_delta_pct == 0.0
     assert report.completion_tokens_delta_pct == 0.0
     assert report.mean_ttft_delta_pct == pytest.approx(0.0, abs=0.01)
     assert report.n_client_requests == 4
     assert report.n_server_requests == 4
 
 
+def test_reconcile_detects_drift_in_prompt_tokens() -> None:
+    client = [_tel(prompt_tokens=20) for _ in range(3)]  # 60 client prompt tokens
+    text = (
+        "vllm:request_success_total 3\n"
+        "vllm:prompt_tokens_total 90\n"
+        "vllm:generation_tokens_total 30\n"
+        "vllm:time_to_first_token_seconds_sum 0.15\n"
+        "vllm:time_to_first_token_seconds_count 3\n"
+    )
+    report = reconcile(client, text)
+    assert report.prompt_tokens_delta_pct == pytest.approx(33.3333333333)
+
+
 def test_reconcile_detects_drift_in_completion_tokens() -> None:
     client = [_tel(n_tokens=10) for _ in range(3)]  # 30 client completion tokens
     text = (
         "vllm:request_success_total 3\n"
-        "vllm:prompt_tokens_total 0\n"
+        "vllm:prompt_tokens_total 60\n"
         "vllm:generation_tokens_total 60\n"  # server says 60, 2x client → 50% delta
         "vllm:time_to_first_token_seconds_sum 0.15\n"
         "vllm:time_to_first_token_seconds_count 3\n"
@@ -126,7 +142,7 @@ def test_reconcile_detects_drift_in_request_count() -> None:
     client = [_tel() for _ in range(5)]
     text = (
         "vllm:request_success_total 4\n"  # server saw only 4
-        "vllm:prompt_tokens_total 0\n"
+        "vllm:prompt_tokens_total 100\n"
         "vllm:generation_tokens_total 50\n"
         "vllm:time_to_first_token_seconds_sum 0.2\n"
         "vllm:time_to_first_token_seconds_count 4\n"
@@ -150,7 +166,7 @@ def test_reconcile_gate_passes_under_threshold() -> None:
     client = [_tel(ttft_ms=100.0, n_tokens=100) for _ in range(100)]
     text = (
         "vllm:request_success_total 100\n"
-        "vllm:prompt_tokens_total 0\n"
+        "vllm:prompt_tokens_total 2000\n"
         "vllm:generation_tokens_total 10000\n"  # 100×100 client completion tokens
         "vllm:time_to_first_token_seconds_sum 10.15\n"  # 101.5ms mean vs 100ms = 1.5%
         "vllm:time_to_first_token_seconds_count 100\n"
@@ -165,7 +181,7 @@ def test_reconcile_gate_fails_over_threshold() -> None:
     client = [_tel(ttft_ms=100.0, n_tokens=100) for _ in range(100)]
     text = (
         "vllm:request_success_total 97\n"  # 3% drift
-        "vllm:prompt_tokens_total 0\n"
+        "vllm:prompt_tokens_total 2000\n"
         "vllm:generation_tokens_total 100\n"
         "vllm:time_to_first_token_seconds_sum 10.0\n"
         "vllm:time_to_first_token_seconds_count 97\n"
@@ -197,19 +213,20 @@ def test_reconcile_rejects_extra_fields() -> None:
 def test_reconcile_handles_request_failures() -> None:
     """Failed requests don't count as success on either side."""
     client = [
-        _tel(rid="ok1", status=200, ttft_ms=50.0, n_tokens=10),
-        _tel(rid="bad", status=500, ttft_ms=None, n_tokens=0),
-        _tel(rid="ok2", status=200, ttft_ms=60.0, n_tokens=10),
+        _tel(rid="ok1", prompt_tokens=20, status=200, ttft_ms=50.0, n_tokens=10),
+        _tel(rid="bad", prompt_tokens=20, status=500, ttft_ms=None, n_tokens=0),
+        _tel(rid="ok2", prompt_tokens=20, status=200, ttft_ms=60.0, n_tokens=10),
     ]
     text = (
         "vllm:request_success_total 2\n"  # server agrees: 2 success
-        "vllm:prompt_tokens_total 0\n"
+        "vllm:prompt_tokens_total 60\n"
         "vllm:generation_tokens_total 20\n"
         "vllm:time_to_first_token_seconds_sum 0.11\n"  # 55ms mean (0.11s / 2)
         "vllm:time_to_first_token_seconds_count 2\n"
     )
     report = reconcile(client, text)
     assert report.success_count_delta_pct == 0.0
+    assert report.prompt_tokens_delta_pct == 0.0
     assert report.completion_tokens_delta_pct == 0.0
     assert report.mean_ttft_delta_pct == pytest.approx(0.0, abs=0.01)
     assert report.gate_passes(threshold=2.0)

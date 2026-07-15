@@ -29,6 +29,7 @@ from core.trace import RequestTelemetry, Trace
 def _telemetry(status: int = 200, ttft_ms: float = 50.0) -> RequestTelemetry:
     return RequestTelemetry(
         request_id="req-000",
+        prompt_tokens=16,
         enqueue_ts_ns=0,
         ttft_ms=ttft_ms,
         per_token_ts_ns=[10_000_000, 16_000_000],

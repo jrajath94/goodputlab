@@ -78,7 +78,7 @@ def reconcile(
 
     # Client aggregates.
     client_success = sum(1 for r in client if r.status_code == 200)
-    client_prompt_tokens = sum(_prompt_tokens(r) for r in client)
+    client_prompt_tokens = sum(r.prompt_tokens for r in client)
     client_completion_tokens = sum(len(r.per_token_ts_ns) for r in client)
     client_mean_ttft_ms = _mean_ttft_ms(client)
 
@@ -100,23 +100,6 @@ def reconcile(
         n_client_requests=len(client),
         n_server_requests=int(server_total),
     )
-
-
-def _prompt_tokens(r: RequestTelemetry) -> int:
-    """Recover prompt token count from ``request_id`` encoding (LOAD-05).
-
-    Clients can't always record prompt tokens directly because vLLM
-    tokenizes server-side.  We don't have a side-channel in Phase 2
-    (no custom proxy header), so this returns 0 unless the request_id
-    carries an encoded ``p{count}`` suffix.
-
-    For now, returns 0; the reconciler will surface a token-count delta
-    that the bench orchestrator interprets ("client never logged prompt
-    tokens → report says 100% delta → expected, not a bug").
-    """
-    return 0
-
-
 def _mean_ttft_ms(client: list[RequestTelemetry]) -> float:
     vals = [r.ttft_ms for r in client if r.ttft_ms is not None]
     if not vals:

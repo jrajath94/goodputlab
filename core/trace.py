@@ -62,6 +62,7 @@ class RequestTelemetry(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     request_id: str
+    prompt_tokens: int = Field(ge=1, le=200_000)
     enqueue_ts_ns: int = Field(ge=0)
     ttft_ms: float | None = None  # None when request failed before first token
     per_token_ts_ns: list[int] = Field(default_factory=list)

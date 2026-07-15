@@ -76,6 +76,7 @@ async def test_replay_produces_telemetry_for_each_request() -> None:
     results = await runner.replay(_trace(n=4))
     assert len(results) == 4
     assert all(r.status_code == 200 for r in results)
+    assert [r.prompt_tokens for r in results] == [10, 10, 10, 10]
 
 
 @pytest.mark.asyncio

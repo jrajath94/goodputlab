@@ -17,6 +17,7 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
+from core.reconcile import reconcile
 from core.trace import (
     ArrivalConfig,
     RequestSpec,
@@ -104,6 +105,7 @@ async def test_send_one_records_enqueue_ts() -> None:
     arrival = time.perf_counter_ns() - 1_000_000
     t = await client.send_one(spec, arrival)
     assert t.enqueue_ts_ns > 0
+    assert t.prompt_tokens == spec.prompt_tokens
 
 
 @pytest.mark.asyncio
@@ -182,6 +184,45 @@ async def test_send_one_propagates_routed_pool() -> None:
         spec, time.perf_counter_ns(), routed_pool="prefill"
     )
     assert t.routed_pool == "prefill"
+
+
+@pytest.mark.asyncio
+async def test_run_carries_prompt_tokens_for_each_request() -> None:
+    client = _asgi_client()
+    trace = Trace(
+        workload=WorkloadType.CHAT,
+        seed=1,
+        duration_s=10.0,
+        arrival=ArrivalConfig(process="poisson", rate_per_sec=100, seed=1),
+        requests=[_spec(0, n_out=2), _spec(1, n_out=4).model_copy(update={"prompt_tokens": 42})],
+    )
+    results = await client.run(trace)
+    assert [r.prompt_tokens for r in results] == [10, 42]
+
+
+@pytest.mark.asyncio
+async def test_run_to_reconcile_preserves_prompt_token_truth() -> None:
+    client = _asgi_client()
+    trace = Trace(
+        workload=WorkloadType.CHAT,
+        seed=1,
+        duration_s=10.0,
+        arrival=ArrivalConfig(process="poisson", rate_per_sec=100, seed=1),
+        requests=[_spec(0, n_out=2), _spec(1, n_out=4).model_copy(update={"prompt_tokens": 42})],
+    )
+    results = await client.run(trace)
+    ttft_sum_s = sum((r.ttft_ms or 0.0) / 1000.0 for r in results)
+    metrics = (
+        "vllm:request_success_total 2\n"
+        "vllm:prompt_tokens_total 52\n"
+        "vllm:generation_tokens_total 6\n"
+        f"vllm:time_to_first_token_seconds_sum {ttft_sum_s}\n"
+        "vllm:time_to_first_token_seconds_count 2\n"
+    )
+    report = reconcile(results, metrics)
+    assert report.prompt_tokens_delta_pct == 0.0
+    assert report.completion_tokens_delta_pct == 0.0
+    assert report.success_count_delta_pct == 0.0
 
 
 @pytest.mark.asyncio

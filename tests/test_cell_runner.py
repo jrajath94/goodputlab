@@ -64,6 +64,7 @@ def _telemetry(
     completion = per_token_ts_ns[-1] + 1_000_000 if per_token_ts_ns else None
     return RequestTelemetry(
         request_id=request_id,
+        prompt_tokens=16,
         enqueue_ts_ns=0,
         ttft_ms=ttft_ms,
         per_token_ts_ns=per_token_ts_ns,

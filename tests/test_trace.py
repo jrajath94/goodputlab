@@ -54,6 +54,7 @@ def test_request_spec_rejects_empty_id() -> None:
 def test_request_telemetry_round_trip() -> None:
     t = RequestTelemetry(
         request_id="r0001",
+        prompt_tokens=512,
         enqueue_ts_ns=1_000_000_000,
         ttft_ms=42.5,
         per_token_ts_ns=[1_010_000_000, 1_020_000_000, 1_030_000_000],
@@ -70,6 +71,7 @@ def test_request_telemetry_per_token_must_be_monotonic() -> None:
     with pytest.raises(ValidationError, match="monotonically non-decreasing"):
         RequestTelemetry(
             request_id="r0001",
+            prompt_tokens=512,
             enqueue_ts_ns=100,
             per_token_ts_ns=[200, 150, 300],  # 150 < 200 — out of order
             status_code=200,
@@ -82,6 +84,7 @@ def test_request_telemetry_rejects_extra_fields() -> None:
         RequestTelemetry.model_validate(
             {
                 "request_id": "r1",
+                "prompt_tokens": 10,
                 "enqueue_ts_ns": 1,
                 "ttft_mss": 10,  # typo
                 "status_code": 200,
