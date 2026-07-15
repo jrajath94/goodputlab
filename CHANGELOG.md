@@ -69,7 +69,7 @@ test, or an honest documentation rewrite.
 
 ### Notes
 
-- Test count: **390 passed, 25 skipped, 93 % line coverage**
+- Test count: **390 passed, 25 skipped, 97 % line coverage**
   (was 377/25/93 % on v0.2.0). The 13-test delta is 5 autoscaler_thrash
   + 3 doc_paths + 5 grafana_dashboard — `13 = 5 + 3 + 5`.
 - `ruff check .` clean. `mypy --strict` clean across all 88 source files.
