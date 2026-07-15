@@ -14,7 +14,10 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-*.parquet
+# REPRO-03: bench results committed as parquet + metadata JSON.
+# The blanket *.parquet blocklist contradicted REPRO-03 — removed in
+# favor of explicit whitelist patterns under bench/results/ below
+# (the only path where parquet may legitimately live).
 .worktrees/
 secrets/
 *.key
@@ -25,6 +28,9 @@ bench/results/*
 !bench/results/ollama/
 !bench/results/runpod_pilot/
 !bench/results/runpod_full/
+# REPRO-03: bench results may also be committed as parquet. The blanket
+# *.parquet blocklist was removed (see above) so parquet directly under
+# any of the whitelisted bench subdirs is committable.
 
 # Plan 01-01: protected secret filenames per PROJECT.md / USER CLAUDE.md
 openclaw.json
