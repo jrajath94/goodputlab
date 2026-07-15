@@ -415,4 +415,4 @@ The work that remains is measurement, not invention.
 
 *Word count target: ~3000. JSON sources: `bench/results/real/*.json`.
 Figures: `bench/figures/*.png`. Tests: `tests/test_*.py`. Audit:
-`AUDIT.md`. Tuning: `autoscaler/TUNING.md`.*
+`AUDIT.md`. Tuning: `docs/autoscaler/TUNING.md`.*

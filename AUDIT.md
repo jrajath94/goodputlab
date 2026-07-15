@@ -216,7 +216,7 @@ following are deferred, not stubbed:
 | P5    | Real EAGLE-3 model + verifier              | Model weights + draft head training   |
 | P5    | Real LMCache wire (gRPC/HTTP)              | Sidecar deployment                    |
 
-All five are **documented in `CHANGELOG.md`, `autoscaler/TUNING.md`,
+All five are **documented in `CHANGELOG.md`, `docs/autoscaler/TUNING.md`,
 `spec/eagle.py` docstring, and `kv/lmcache_client.py` docstring.** The
 interfaces are real; the swap-in points are real; the simulators are
 honest about being simulators.
@@ -293,7 +293,7 @@ then run v1.1 in the weeks before the onsite.
 
 - `CHANGELOG.md` — release-scope policy, deferred list.
 - `README.md` — measured Run 1 table + honest reading.
-- `autoscaler/TUNING.md` — what's enforced vs planned.
+- `docs/autoscaler/TUNING.md` — what's enforced vs planned.
 - `bench/results/real/*.json` — Run 1 evidence.
 - `bench/results/ollama/README.md` — local M1 Max measurement notes.
 - `scripts/check_origin_clean.sh` — leaked-docs sentinel (P5-1).

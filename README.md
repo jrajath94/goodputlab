@@ -168,7 +168,7 @@ last less than a worker-flip cycle (about 30 s in practice). The PID
 controller runs on a slower tick (1–5 s), has a 120 s minimum dwell
 between flips, and refuses to flip a worker that still has in-flight
 requests. Tuning the gains is in `control/autoscaler.py` module
-docstring and the eventual `autoscaler/TUNING.md` deliverable.
+docstring and the eventual `docs/autoscaler/TUNING.md` deliverable.
 
 **Why the sentinel.** Counter metrics on a disagg hop measure that
 the engine thinks it transferred some bytes. They do not measure
