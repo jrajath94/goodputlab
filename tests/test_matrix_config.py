@@ -11,7 +11,7 @@ from bench.runpod_matrix import MatrixSpec
 from bench.schema.matrix_config import load_matrix_config
 
 
-def _write_yaml(tmp_path: Path, payload: dict) -> Path:
+def _write_yaml(tmp_path: Path, payload: dict[str, object]) -> Path:
     path = tmp_path / "matrix.yaml"
     path.write_text(yaml.safe_dump(payload))
     return path
@@ -31,7 +31,7 @@ def test_load_pilot_yaml_returns_config(tmp_path: Path) -> None:
         },
     )
     cfg = load_matrix_config(path)
-    assert cfg.topologies == ["colocated"]  # type: ignore[comparison-overlap]
+    assert cfg.topologies == ["colocated"]
     assert cfg.rates_rps == [4, 8]
     assert cfg.pod_id == "pod-abc"
 

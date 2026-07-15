@@ -9,6 +9,7 @@ ASGI transport.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import httpx
@@ -23,7 +24,7 @@ from loadgen.client import VllmHttpClient
 from loadgen.replay import ReplayRunner
 
 
-def _build_mock_factory(mock: MockVllmServer):
+def _build_mock_factory(mock: MockVllmServer) -> Callable[[], VllmHttpClient]:
     """ClientFactory that mints a VllmHttpClient targeting the mock app."""
 
     def factory() -> VllmHttpClient:
@@ -37,7 +38,7 @@ def _build_mock_factory(mock: MockVllmServer):
     return factory
 
 
-def _build_replay_factory():
+def _build_replay_factory() -> Callable[[VllmHttpClient], ReplayRunner]:
     def factory(client: VllmHttpClient) -> ReplayRunner:
         return ReplayRunner(client)
 

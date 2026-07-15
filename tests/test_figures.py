@@ -74,7 +74,7 @@ def test_cost_md_documents_assumptions(tmp_path: Path, monkeypatch: pytest.Monke
 
 def _fake_cell(
     topo: Topology, model: Model, rate: int, mix: Mix, ttft: float
-) -> dict:
+) -> dict[str, float | int | str]:
     return {
         "topology": topo.value,
         "model": model.value,
