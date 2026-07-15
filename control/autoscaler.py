@@ -28,6 +28,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from control.pid import PidController
 from control.pool import Pool
+from obs.registry import MetricsRegistry
+
+#: Window during which a back-to-back flip on the same pool triggers the
+#: thrash alarm (P6 mitigation).  ROADMAP Phase 7 / AUTO-03 specifies 240s;
+#: calibrated against per-tick actuator cadence so two flips in under
+#: ``THRASH_WINDOW_S`` second is the threshold the alarm fires on.
+THRASH_WINDOW_S: float = 240.0
 
 
 class PoolTopology(BaseModel):
@@ -71,6 +78,7 @@ class PoolAutoscaler:
         step_size: int = 1,
         min_dwell_s: float = 0.0,
         clock: Callable[[], float] | None = None,
+        metrics: MetricsRegistry | None = None,
     ) -> None:
         if min_replicas < 0:
             raise ValueError("min_replicas must be >= 0")
@@ -86,6 +94,7 @@ class PoolAutoscaler:
         self._step = step_size
         self._min_dwell_s = min_dwell_s
         self._clock = clock if clock is not None else time.monotonic
+        self._metrics = metrics
         # Per-pool last flip timestamp (None = never flipped).
         self._last_flip_ts: dict[Pool, float] = {}
 
@@ -147,6 +156,15 @@ class PoolAutoscaler:
                 reason = "stable"
 
             if delta != 0:
+                # Thrash detection (P6 / AUTO-03): two flips on the same pool
+                # within THRASH_WINDOW_S indicate ping-pong oscillation. The
+                # alarm counter is informational — actual suppression happens
+                # above via the ``min_dwell_s`` gate.  Caller-side alarm
+                # watches ``controller_thrash_total`` for sustained non-zero.
+                if self._metrics is not None:
+                    last_ts = self._last_flip_ts.get(pool)
+                    if last_ts is not None and (now - last_ts) < THRASH_WINDOW_S:
+                        self._metrics.inc_controller_thrash()
                 self._last_flip_ts[pool] = now
 
             out.append(

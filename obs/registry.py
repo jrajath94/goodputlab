@@ -22,6 +22,8 @@ Metric inventory:
 | goodputlab_request_error_total      | Counter   | error_class    |
 | goodputlab_reconcile_gate_passes_total | Counter | —              |
 | goodputlab_cache_no_history_total       | Counter | —              |
+| goodputlab_controller_thrash_total      | Counter | —              |
+| goodputlab_role_flip_inflight_dropped_total | Counter | —          |
 """
 
 from __future__ import annotations
@@ -130,6 +132,18 @@ class MetricsRegistry:
             "Router lookups that found no prior prefix entry (cold-cache regime)",
             registry=self.registry,
         )
+        self.controller_thrash = Counter(
+            "goodputlab_controller_thrash_total",
+            "AUTOSCALER thrash alarms: a flip fired within 240s of the previous flip "
+            "on the same pool (P6 mitigation; expected to remain near 0)",
+            registry=self.registry,
+        )
+        self.role_flip_inflight_dropped = Counter(
+            "goodputlab_role_flip_inflight_dropped_total",
+            "In-flight requests dropped during a forced role flip (AUTO-05 zero-drop "
+            "evidence; expected to remain 0 when the drain protocol is honored)",
+            registry=self.registry,
+        )
 
     # ---------- Recording helpers (typed wrappers) ----------
 
@@ -171,6 +185,12 @@ class MetricsRegistry:
 
     def inc_no_history(self) -> None:
         self.no_history.inc()
+
+    def inc_controller_thrash(self) -> None:
+        self.controller_thrash.inc()
+
+    def inc_inflight_dropped(self, n: int = 1) -> None:
+        self.role_flip_inflight_dropped.inc(n)
 
 
 __all__ = ["MetricsRegistry"]
