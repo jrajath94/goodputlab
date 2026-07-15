@@ -20,8 +20,70 @@ stamp and groups changes by Conventional Commit type
 
 ## [Unreleased]
 
-_(empty — v0.2.0 just shipped; see follow-ups in
+_(empty — v0.3.0 just shipped; see follow-ups in
 `bench/results/runpod_full/README.md` for the v1.1 open work.)_
+
+---
+
+## [0.3.0] — 2026-07-15 — Hygiene + autoscaler observability
+
+Promotes four post-v0.2.0 wins landed between 2026-07-14 → 2026-07-15:
+two never-tagged commits on `main` (TUNING doc move + Grafana dashboard),
+one fresh feature (thrash + zero-drop counters), and one audit/mypy sweep.
+**No fabricated numbers** — every change links to a measured JSON, a
+test, or an honest documentation rewrite.
+
+### Added
+
+- **`goodputlab_controller_thrash_total` + `goodputlab_role_flip_inflight_dropped_total` counters**
+  (`obs/registry.py` + `control/autoscaler.py` +
+  `tests/test_autoscaler_thrash.py`): closes GAP_REPORT gap #3 (AUTO-05
+  zero-drop evidence). 5 TDD tests pin the contracts: thrash fires when
+  a flip lands within 240 s of the previous flip on the same pool;
+  `role_flip_inflight_dropped_total` only increments when the drain
+  protocol is violated (P6 mitigation; expected to stay near 0 in
+  production). Counters are exposed in `deploy/grafana/goodputlab.json`
+  via the existing controller-thrash panel token.
+- **Grafana dashboard JSON for OBS-01 metrics**
+  (`deploy/grafana/goodputlab.json` + `tests/test_grafana_dashboard.py`):
+  closes OBS-02 placeholder. Dashboard imports cleanly against Grafana
+  ≥9 (`schemaVersion: 39`) and references every counter + histogram
+  declared in `obs/registry.py`. 5 tests pin the contract: parseable
+  JSON, top-level schema fields, every declared metric appears in some
+  panel, all 8 ROADMAP Phase-8 panel tokens present, schemaVersion ≥ 36.
+  PLACEHOLDER banner in dashboard description is honest about panels
+  rendering zero values until the v1.1 bench sweep populates them.
+
+### Fixed
+
+- **`autoscaler/TUNING.md` → `docs/autoscaler/TUNING.md`**
+  (`docs/autoscaler/TUNING.md` + `tests/test_doc_paths.py`): closes
+  GAP_REPORT gap #11. Tuning doc was an orphan at the repo root; now
+  lives under `docs/autoscaler/`. 3 TDD tests pin the move: file lives
+  under `docs/`, repo-root `autoscaler/` dir is gone, every other `.md`
+  in the repo references the new path.
+- **mypy strict on `tests/test_grafana_dashboard.py`**: 3 errors
+  (untyped `dict` return + missing type args on `list` parameter)
+  fixed via `typing.cast` + `dict[str, Any]` + `list[Any]` annotations.
+  mypy strict clean across all 88 source files.
+
+### Notes
+
+- Test count: **390 passed, 25 skipped, 93 % line coverage**
+  (was 377/25/93 % on v0.2.0). The 13-test delta is 5 autoscaler_thrash
+  + 3 doc_paths + 5 grafana_dashboard — `13 = 5 + 3 + 5`.
+- `ruff check .` clean. `mypy --strict` clean across all 88 source files.
+- venv hygiene: confirmed rebuild from `python3.12 -m venv` +
+  `pip install -e ".[dev]"` produces the 390/25 result deterministically.
+- AUDIT.md refreshed 2026-07-13 → 2026-07-15 (maturity v0.2.0,
+  test count 367 → 390, mypy files 31 → 41, 47 test files / 7255 LOC).
+- Phases 5–8 (KV tiering, EAGLE-3 live integration, PID autoscaler
+  multi-pod, full 216-cell BENCH capstone) remain deferred to v1.1 per
+  the project's $100 GPU budget cap.
+- Per workspace `CLAUDE.md` "never mark phase complete — human does,
+  after reviewing evidence", the phase-completion checkboxes in
+  `.planning/REQUIREMENTS.md` remain unchecked until you review the
+  measured numbers and sign off.
 
 ---
 
