@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import Any, cast
 
 from prometheus_client import Counter
 
@@ -52,16 +53,16 @@ _REQUIRED_PANEL_TOKENS = (
 )
 
 
-def _load_dashboard() -> dict:
+def _load_dashboard() -> dict[str, Any]:
     assert DASHBOARD_PATH.is_file(), (
         f"Grafana dashboard missing: {DASHBOARD_PATH} (OBS-02 deliverable)."
     )
     text = DASHBOARD_PATH.read_text(encoding="utf-8")
-    data = json.loads(text)  # raises if not valid JSON
+    data = cast("dict[str, Any]", json.loads(text))  # raises if not valid JSON
     return data
 
 
-def _all_promql_expressions(panels: list) -> list[str]:
+def _all_promql_expressions(panels: list[Any]) -> list[str]:
     """Recursively walk every panel's ``targets[].expr`` field."""
     out: list[str] = []
     for panel in panels:

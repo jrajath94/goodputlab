@@ -1,4 +1,4 @@
-# GoodputLab — honest russian-doll audit (2026-07-13)
+# GoodputLab — honest russian-doll audit (2026-07-15)
 
 This is a first-principles audit from the outside in. Every claim here
 is traceable to a file path, a test name, a coverage percentage, or a
@@ -13,38 +13,38 @@ something is "real", a path and a test exist.
 |-------------------------|-----------------------------------------------|
 | Domain                  | LLM inference control plane (P/D disagg)      |
 | Audience                | Anthropic Staff/Sr Inference / Perf roles     |
-| Maturity                | v0.1.0 released (2026-07-09)                  |
-| Test count              | 367 passed, 25 skipped (pytest)               |
-| Coverage                | 93 % line (library code; scripts excluded)     |
+| Maturity                | v0.2.0 released (2026-07-14)                  |
+| Test count              | 390 passed, 25 skipped (pytest)               |
+| Coverage                | 97 % line (library code; scripts excluded)     |
 | Lint                    | ruff clean (format + lint)                    |
-| Type check              | mypy strict clean (31 source files)           |
-| Code base               | 2347 lines library + 1424 lines bench/scripts |
-| Test code               | 6032 lines across 39 files                    |
-| Test:code ratio         | 1.62                                          |
+| Type check              | mypy strict clean (41 source files)           |
+| Code base               | 2503 lines library + 3104 lines bench/scripts |
+| Test code               | 7255 lines across 47 files                    |
+| Test:code ratio         | 1.29                                          |
 | Conventional commits    | clean history (every commit a single type)    |
 | Open TODOs in source    | 0                                             |
 | NotImplementedError     | 0                                             |
-| CI gate failures        | 1 this session (ruff on ollama_smoke — fixed) |
+| CI gate failures        | 0                                             |
 
-> Note: AUDIT.md was last refreshed on 2026-07-14; the test count,
-> coverage, and test-file count above reflect 2026-07-14 pytest
-> output (367 pass / 25 skip / 93% coverage / 39 test files /
-> ~6500 LOC). Library + bench LOC and the per-module coverage table
-> below still need re-measurement for a fresh snapshot.
+> Note: AUDIT.md last refreshed 2026-07-15. Counts above measured from
+> fresh pytest + coverage run: 390 pass / 25 skip / 97% library coverage /
+> 47 test files / 7255 LOC test code. Per-module LOC and per-module
+> coverage in Layer 2 re-measured against the same snapshot.
 
 ## Layer 1 — directory structure (no leaf files yet)
 
 ```
-core/        4 modules   381 LOC    schemas + metrics + reconcile
-control/     4 modules   474 LOC    router + admission + PID + autoscaler
-loadgen/     9 modules   977 LOC    traces + arrival + http client + replay
+core/        4 modules   408 LOC    schemas + metrics + reconcile
+control/     4 modules   565 LOC    router + admission + PID + autoscaler
+loadgen/     9 modules   962 LOC    traces + arrival + http client + replay
 kv/          2 modules   169 LOC    LMCache client + tier admission policy
-obs/         2 modules   208 LOC    Prometheus registry + /metrics exporter
+obs/         2 modules   246 LOC    Prometheus registry + /metrics exporter
 spec/        1 module    153 LOC    EAGLE-3 simulator + auto-disable + P3 gate
-bench/       4 files     547 LOC    mock vLLM + orchestrator + A/B + ollama smoke
-scripts/     3 files     877 LOC    disagg_proxy + real_bench + sentinel_daemon
-tests/       38 files   6110 LOC    pytest suite (was 32 / 4293 on 2026-07-13)
+bench/      13 files    2008 LOC    matrix orchestrator + figures + cell_runner
+scripts/     5 files    1096 LOC    disagg_proxy + real_bench + sentinel + matrix + sweep_report
+tests/      47 files    7255 LOC    pytest suite (was 38 / 6110 on 2026-07-14)
 configs/     5 JSON                 NIXL UCX pins + LMCache configs
+deploy/      1 dir                  grafana/goodputlab.json (OBS-02 placeholder)
 docs/        README.md + CHANGELOG.md + CONTRIBUTING.md + RUNPOD.md
              + autoscaler/TUNING.md + AUDIT.md (this file)
 ```
@@ -58,24 +58,19 @@ which is private planning state, `.venv/`, caches, generated results).
 
 | File              | LOC | Status | Coverage | Notes                                |
 |-------------------|-----|--------|----------|--------------------------------------|
-| `trace.py`        | 141 | REAL   | 77 %     | RequestSpec + telemetry + SloClass   |
-| `metrics.py`      |  57 | REAL   |   0 %    | parses vLLM `/metrics` (unit-level)  |
-| `reconcile.py`    | 126 | REAL   |   0 %    | ±2 % gate between loadgen + server   |
-| `__init__.py`     |   0 | REAL   | 100 %    | empty                                |
-
-Honest: `metrics.py` and `reconcile.py` are **0 % covered** in the local
-suite because they take live vLLM output. There are static parse tests
-elsewhere but full coverage requires a live pod. Documented in README
-Known Limitations.
+| `trace.py`        | 141 | REAL   | 100 %    | RequestSpec + telemetry + SloClass   |
+| `metrics.py`      | 140 | REAL   |  91 %    | parses vLLM `/metrics` (unit-level)  |
+| `reconcile.py`    | 126 | REAL   |  97 %    | ±2 % gate between loadgen + server   |
+| `__init__.py`     |   1 | REAL   | 100 %    | empty                                |
 
 ### `control/` — the staff layer
 
 | File             | LOC | Status   | Coverage | Notes                                |
 |------------------|-----|----------|----------|--------------------------------------|
-| `router.py`      | 215 | REAL     | 100 %    | salt_for_pool + admission + SLO class|
-| `pool.py`        |  46 | REAL     | 100 %    | Pool enum + PoolState                |
+| `router.py`      | 248 | REAL     |  99 %    | salt_for_pool + admission + SLO class|
+| `pool.py`        |  46 | REAL     |  95 %    | Pool enum + PoolState                |
 | `pid.py`         |  89 | REAL     | 100 %    | discrete PID + anti-windup           |
-| `autoscaler.py`  | 124 | REAL     | 100 %    | per-pool PID + drain                 |
+| `autoscaler.py`  | 181 | REAL     |  99 %    | per-pool PID + drain + thrash + 0-drop|
 
 Router is the most-tested file in the project (multiple A/B tests in
 `test_router.py` + `test_router_salt.py` + `test_router_bench.py`).
@@ -95,15 +90,11 @@ tested (50 random ticks, never scale-down with in_flight > 0).
 | `agentic.py` | 114 | 100 %    | agentic bursty ON/OFF                       |
 | `synth_text.py`| 120 | 95 %   | deterministic text padding                  |
 | `replay.py`  |  32 | 100 %    | deterministic replay driver                 |
+| `__init__.py`|  26 | 100 %    | re-exports                                  |
 
-The 56 % on `agentic.py` is honest — agentic traces have a
-random-event table that is exercised in integration but not all
-branches are unit-tested. v1.1 should bring that up.
-
-_Update 2026-07-14: agentic.py is now 100% covered (7 tests in
-`test_agentic_generator.py` — validation, byte-identity, prefix
-monotonicity, ≥60% overlap, output_tokens range, on/off arrival,
-invalid config). The 56% above was a stale 2026-07-13 snapshot._
+`agentic.py` is 100% covered (7 tests in `test_agentic_generator.py` —
+validation, byte-identity, prefix monotonicity, ≥60% overlap,
+output_tokens range, on/off arrival, invalid config).
 
 ### `kv/` — LMCache tier
 
@@ -122,7 +113,7 @@ of the file. **Not fabricated** — the docstring says "Mock".
 
 | File          | LOC | Coverage | Notes                                   |
 |---------------|-----|----------|-----------------------------------------|
-| `registry.py` | 157 | 100 %    | Prometheus collectors                   |
+| `registry.py` | 195 |  98 %    | Prometheus collectors                   |
 | `server.py`   |  51 | 100 %    | aiohttp /metrics HTTP exporter          |
 
 Standard Prometheus client. Not exercised by an integration test, but
@@ -141,12 +132,32 @@ window auto-disable is real. v1.1 swap point is documented.
 
 ### `bench/` — measurement drivers
 
-| File              | LOC | Status | Notes                                |
-|-------------------|-----|--------|--------------------------------------|
-| `orchestrator.py` | 157 | REAL   | CampaignReport aggregator            |
-| `mock_vllm.py`    |  83 | REAL   | deterministic mock for CI            |
-| `router_bench.py` | 136 | REAL   | A/B cold vs warm router              |
-| `ollama_smoke.py` | 171 | REAL   | local Ollama harness (M1 Max)        |
+| File                   | LOC | Status | Notes                                |
+|------------------------|-----|--------|--------------------------------------|
+| `orchestrator.py`      |  73 | REAL   | CampaignReport aggregator            |
+| `mock_vllm.py`         |  41 | REAL   | deterministic mock for CI            |
+| `router_bench.py`      |  56 | REAL   | A/B cold vs warm router              |
+| `ollama_smoke.py`      |  73 | REAL   | local Ollama harness (M1 Max)        |
+| `cell_runner.py`       | 143 | REAL   | per-cell bench execution             |
+| `matrix_aggregator.py` |  68 | REAL   | mean over reconciled cells only      |
+| `matrix_report.py`     |  57 | REAL   | sweep completion diagnostic          |
+| `figures.py`           | 154 | REAL   | goodput curves + TTFT-vs-rate plots  |
+| `runpod_matrix.py`     |  72 | REAL   | RunPod 4-topo matrix driver          |
+| `schema/cell_schema.py`| 105 | REAL   | cell JSON schema + reconciliation    |
+| `schema/matrix_config.py`| 33 | REAL   | MatrixSpec loader                    |
+
+Ollama smoke is the M1 Max baseline path; commit history shows the
+streaming-parse bug was real and is now fixed in e057962.
+
+### `scripts/` — integration drivers
+
+| File                 | LOC | Status     | Notes                              |
+|----------------------|-----|------------|------------------------------------|
+| `disagg_proxy.py`    | 521 | REAL       | P→D HTTP proxy + KV handoff        |
+| `real_bench.py`      | 177 | REAL       | bench driver against live vLLM     |
+| `sentinel_daemon.py` | 179 | REAL       | sentinel-token validator           |
+| `run_matrix.py`      | 157 | REAL       | matrix orchestrator CLI            |
+| `sweep_report.py`    |  62 | REAL       | sweep completion diagnostic CLI    |
 
 Ollama smoke is the M1 Max baseline path; commit history shows the
 streaming-parse bug was real and is now fixed in e057962.
@@ -165,14 +176,20 @@ and excluded from the cov gate by design. Static-shape tests exist
 in `test_disagg_proxy_static.py`, `test_real_bench.py`,
 `test_sentinel_static.py`.
 
-### `tests/` — 32 files
+### `tests/` — 47 files
 
 | Category                 | Files | Notes                                          |
 |--------------------------|-------|------------------------------------------------|
 | Module unit tests        | 23    | one per library module                         |
 | Static-shape tests       |  5    | disagg proxy / real bench / sentinel / health  |
-| Hygiene + invariant      |  2    | fixture hygiene + origin clean                 |
+| Hygiene + invariant      |  4    | fixture hygiene + origin clean + doc paths + grafana |
 | Smoke harness            |  2    | mock vllm + ollama                             |
+| Cross-cutting            | 13    | router + bench + spec + figures + reconcile   |
+
+_New in v0.2.x:_ `tests/test_doc_paths.py` (3 tests, doc path
+consistency — pinned the Gap 11 move) and
+`tests/test_grafana_dashboard.py` (5 tests, OBS-02 dashboard pins
+every OBS-01 metric + ROADMAP Phase 8 panel tokens).
 
 ### `configs/` — runtime knobs
 
