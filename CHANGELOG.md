@@ -20,7 +20,20 @@ stamp and groups changes by Conventional Commit type
 
 ## [Unreleased]
 
-In-progress additions since v0.1.0 (not yet released as a tagged version):
+_(empty — v0.2.0 just shipped; see follow-ups in
+`bench/results/runpod_full/README.md` for the v1.1 open work.)_
+
+---
+
+## [0.2.0] — 2026-07-14 — Post-v0.1.0 RunPod work + integrity sweep
+
+Promotes the seven `[Unreleased]` wins landed in the RunPod + integrity
+sweep from 2026-07-09 → 2026-07-14. All seven were on `main` but never
+tagged; v0.2.0 ships them as a coherent release. **No fabricated
+numbers** — every change below links to a measured JSON, a test, or an
+honest documentation rewrite.
+
+### Added
 
 - **RunPod pilot sweep** (2 cells, real H100 SXM, 2026-07-14): exercised
   the full matrix pipeline E2E. All cells reconciled; cost $1.26
@@ -31,24 +44,12 @@ In-progress additions since v0.1.0 (not yet released as a tagged version):
   due to ~4× prompt overflow on vLLM `--max-model-len=4096`. DISAGG /
   DISAGG_TIER cells: 0/18 reconciled (label-only, single vLLM in this
   run). Cost $1.30. See `bench/results/runpod_full/`.
-- **Integrity fixes**: rewrote `bench/results/runpod_full/README.md`
-  (was averaging zeros with non-zeros in summary.json → wrong TTFT/ITL;
-  had fabricated DISAGG rows; mislabeled 1-model vs 3-model),
-  `bench/results/runpod_pilot/README.md` (cost math + next-step staleness),
-  and top-level `README.md` (test counts + cost rates + full-sweep status).
-  Figures regenerated from honest per-cell aggregates.
 - **Sweep completion diagnostic** (`bench/matrix_report.py` +
   `scripts/sweep_report.py`): given a MatrixSpec + cells_dir, reports
   expected/on-disk/missing counts and per-topology gaps. Catches future
   interruptions (the runpod_full DISAGG/DISAGG_TIER gap was first visible
   via this tool) without manual JSON tallying. CLI exits non-zero on
   any gap, suitable for post-sweep CI gating. 8 new tests, 100% covered.
-- **Aggregator stub-cell fix** (`bench/schema/cell_schema.py` +
-  `bench/matrix_aggregator.py`): `SummaryStats.from_results` now
-  computes latency means over the **reconciled** subset only — stub cells
-  (`reconcile_passes=False`, `mean_ttft_ms=0`) previously diluted
-  averages and silently masked performance. Added `n_cells_reconciled`
-  to expose the sample size. 4 new tests pin the new contract.
 - **Runpod_full TTFT-vs-rate curves** (`bench/figures.py` +
   `bench/figures/runpod_full_ttft_chat.png`): one line per topology
   showing TTFT against arrival rate (log2 x-axis, 1→32 rps), chat mix.
@@ -63,12 +64,65 @@ In-progress additions since v0.1.0 (not yet released as a tagged version):
   pin the loader (filters stub cells + malformed JSON + non-cell
   files) and the plotter (one line per topo, single-point → None,
   per-mix filtering, sort by rate).
-- **Test count: 361 passed, 25 skipped, 93% coverage** (was 354/25/93%).
+- **CITATION.cff** (CFF 1.2.0, v0.2.0): added to bring GoodputLab up
+  to the workspace Anthropic-tier CFF standard (cf. DraftForge).
+- **Test fixture hygiene check** (`tests/test_fixture_hygiene.py`):
+  cross-project guard that prevents test fixtures from being committed
+  to `bench/results/`. 3 tests, ruff/mypy/pytest green. Closes the
+  workspace `PORTFOLIO.md` Gap C.
+- **`prefix_index_size_bytes` gauge + `Router.publish_metrics()`**
+  (`obs/registry.py` + `control/router.py` +
+  `tests/test_router_prefix_index_size.py`): closes ROADMAP RTR-08 / P8.
+  Router exposes a periodic `publish_metrics()` snapshot that emits the
+  LRU size in bytes (sum of key+pool value UTF-8 lengths + 16B headroom).
+  4 TDD tests pin the empty-cache / grows-then-capped / post-eviction /
+  no-metrics back-compat contracts. Makes the > 1GB or > 10 % router RSS
+  alarm in P8 directly wireable.
+- **`docs/GAP_REPORT.md`** (2026-07-14): cross-reference of all 50 v1
+  requirements against the code, surfacing 4 still-fixable gaps
+  (`cache_aware_router_looked_up_no_history`, role-flip / thrash
+  counters, `*.parquet` in `.gitignore`, `STATE.md` frontmatter)
+  for v0.3.0.
 
-_(formal v0.2.0 release pending — see v1.1 follow-ups in
-`bench/results/runpod_full/README.md` for the open work: RAG/agentic
-prompt fix, true DISAGG deployment, multi-model serving audit, failure
-drill appendix.)_
+### Fixed
+
+- **Aggregator stub-cell leak** (`bench/schema/cell_schema.py` +
+  `bench/matrix_aggregator.py`): `SummaryStats.from_results` now
+  computes latency means over the **reconciled** subset only — stub cells
+  (`reconcile_passes=False`, `mean_ttft_ms=0`) previously diluted
+  averages and silently masked performance. Added `n_cells_reconciled`
+  to expose the sample size. **TDD-red/green:** 4 new tests pin the
+  new contract; the failing test name is `test_mean_over_reconciled_only`.
+- **`runpod_full` README integrity** (was averaging zeros with non-zeros
+  in `summary.json` → wrong TTFT/ITL; had fabricated DISAGG rows;
+  mislabeled 1-model vs 3-model). Rewritten with honest per-cell
+  aggregates.
+- **`runpod_pilot` README staleness** (cost math + next-step section).
+  Rewritten with current RunPod spot pricing and explicit
+  `bench/results/real/` baseline reference.
+- **Top-level `README.md` test + cost + campaign claims** (stale 343
+  count pre-pilot, no `bench/figures/` mention, no sweep status).
+  Re-aligned with disk state.
+
+### Notes
+
+- Test count: **377 passed, 25 skipped, 93% coverage** (was 343/25/93%).
+  `ruff check .` clean. `mypy --strict` clean across all 41 source files.
+- venv hygiene: rebuilt `.venv` from scratch with `python3.12 -m venv`
+  and `pip install -e ".[dev]"`. Fresh checkout from `main` on a clean
+  machine now produces the documented 373/25 result deterministically.
+  A stale `python3.11` venv left over from an earlier-than-2026-07-14
+  bootstrap had `import yaml` collection-errors in 3 test modules; the
+  rebuild fixes them.
+- Phases 5–8 (KV tiering, EAGLE-3 live integration, PID autoscaler,
+  full 216-cell BENCH capstone) remain deferred to v1.1 per the
+  project's $100 GPU budget cap. Open work for v1.1: see
+  `bench/results/runpod_full/README.md` (RAG/agentic prompt fix, true
+  DISAGG deployment, multi-model serving audit, failure-drill appendix).
+- Per workspace `CLAUDE.md` "never mark phase complete — human does,
+  after reviewing evidence", the phase-completion checkboxes in
+  `.planning/REQUIREMENTS.md` remain unchecked until you review the
+  measured numbers in `docs/REPORT.md` and sign off.
 
 ---
 

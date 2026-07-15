@@ -1,0 +1,60 @@
+cff-version: 1.2.0
+message: "If you use GoodputLab in academic work, please cite the underlying
+  vLLM / LMCache / EAGLE-3 papers and the model card of the model you benchmark."
+title: "GoodputLab"
+type: software
+date-released: 2026-07-14
+version: 0.2.0
+license: MIT
+authors:
+  - family-names: "Bosco"
+    given-names: "Rajath John"
+    affiliation: "Independent"
+    orcid: ""
+repository-code: "https://github.com/jrajath94/goodputlab"
+url: "https://github.com/jrajath94/goodputlab"
+keywords:
+  - llm-inference
+  - prefill-decode-disaggregation
+  - control-plane
+  - slos
+  - goodput
+  - vllm
+  - lmcache
+  - eagle-3
+references:
+  - type: software
+    title: "vLLM: Efficient Memory-aware LLM Serving with PagedAttention"
+    authors:
+      - family-names: "Kwon"
+        given-names: "Woosuk"
+      - family-names: "Li"
+        given-names: "Zhuohan"
+      - family-names: "Zhuang"
+        given-names: "Siyuan"
+      - family-names: "Sheng"
+        given-names: "Ying"
+      - family-names: "Zheng"
+        given-names: "Lianmin"
+    year: 2023
+    url: "https://github.com/vllm-project/vllm"
+  - type: article
+    title: "LMCache: An Efficient KV Cache Layer for LLM Serving"
+    authors:
+      - family-names: "Sheng"
+        given-names: "Yuhan"
+    journal: "arXiv preprint"
+    year: 2024
+    url: "https://blog.lmcache.dev/"
+  - type: article
+    title: "EAGLE-3: Speculative Decoding with Multi-Layer Feature Fusion"
+    authors:
+      - family-names: "Li"
+        given-names: "Yuhui"
+      - family-names: "Wei"
+        given-names: "Feng"
+      - family-names: "Wang"
+        given-names: "Cheng"
+    journal: "arXiv preprint arXiv:2501.00774"
+    year: 2025
+    url: "https://arxiv.org/abs/2501.00774"
