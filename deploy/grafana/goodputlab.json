@@ -1,0 +1,367 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "GoodputLab control-plane observability. PLACEHOLDER until the v1.1 sweep completes (see docs/GAP_REPORT.md §Gap 6 and bench/results/runpod_full/README.md). All panels render zero values against a fresh Prometheus; once the bench campaign finishes, panels populate from the recorded counters and histograms. Honesty over completeness: shipping a dashboard that imports cleanly with the right metric names beats shipping one bound to a recording source that no longer exists.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "GoodputLab docs",
+      "tooltip": "GoodputLab docs",
+      "type": "link",
+      "url": "https://github.com/jrajath94/goodputlab"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Goodput (req/s meeting SLO)",
+      "description": "Derived: rate(goodputlab_request_total{status_code=~\"2..\"}[1m]) minus the BATCH-shed rate. PLACEHOLDER until v1.1 sweep.",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(rate(goodputlab_request_total{status_code=~\"2..\"}[1m]))",
+          "legendFormat": "goodput (2xx/s)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(goodputlab_request_total{status_code=~\"5..\"}[1m]))",
+          "legendFormat": "errors (5xx/s)",
+          "refId": "B"
+        },
+        {
+          "expr": "sum by (error_class) (rate(goodputlab_request_error_total[1m]))",
+          "legendFormat": "error class ({{error_class}})",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10},
+          "unit": "reqps"
+        }
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "TTFT p95 (ms) by SLO class",
+      "description": "histogram_quantile over goodputlab_ttft_ms bucket series, sliced by SLO class. ROADMAP Phase 8 panel.",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, slo_class) (rate(goodputlab_ttft_ms_bucket[1m])))",
+          "legendFormat": "{{slo_class}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10},
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 400},
+              {"color": "red", "value": 800}
+            ]
+          }
+        }
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "ITL p95 (ms) by SLO class",
+      "description": "histogram_quantile over goodputlab_itl_ms bucket series. ROADMAP Phase 8 panel.",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, slo_class) (rate(goodputlab_itl_ms_bucket[1m])))",
+          "legendFormat": "{{slo_class}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10},
+          "unit": "ms"
+        }
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Queue depth per pool",
+      "description": "goodputlab_queue_depth gauge per pool. ROADMAP Phase 8 panel.",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "goodputlab_queue_depth",
+          "legendFormat": "{{pool}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10},
+          "unit": "short"
+        }
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "KV-tier hit rate (%)",
+      "description": "Derived: rate(goodputlab_kv_tier_hit_total) / (rate(hit) + rate(miss)). ROADMAP Phase 8 panel.",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(rate(goodputlab_kv_tier_hit_total[1m])) / clamp_min(sum(rate(goodputlab_kv_tier_hit_total[1m]) + rate(goodputlab_kv_tier_miss_total[1m])), 1)",
+          "legendFormat": "hit ratio",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(goodputlab_kv_tier_hit_total[1m]))",
+          "legendFormat": "hits/s ({{tier}})",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(goodputlab_kv_tier_miss_total[1m]))",
+          "legendFormat": "misses/s ({{tier}})",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10},
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Spec acceptance rate",
+      "description": "Derived: rate(goodputlab_spec_acceptance_total) / clamp_min(rate(goodputlab_spec_proposed_total), 1). ROADMAP Phase 8 panel. Spec decode is v1.1 (simulator in v0.2).",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(rate(goodputlab_spec_acceptance_total[1m])) / clamp_min(sum(rate(goodputlab_spec_proposed_total[1m])), 1)",
+          "legendFormat": "acceptance ratio",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(goodputlab_spec_acceptance_total[1m]))",
+          "legendFormat": "accepted/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(goodputlab_spec_proposed_total[1m]))",
+          "legendFormat": "proposed/s",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10},
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Role-flip count + thrash + zero-drop",
+      "description": "goodputlab_role_flip_total split by from/to, plus goodputlab_controller_thrash_total (P6 alarm) and goodputlab_role_flip_inflight_dropped_total (AUTO-05 zero-drop evidence — expected to remain 0).",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum by (from, to) (rate(goodputlab_role_flip_total[1m]))",
+          "legendFormat": "{{from}} -> {{to}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(goodputlab_controller_thrash_total[1m]))",
+          "legendFormat": "controller-thrash (P6 alarm)",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(goodputlab_role_flip_inflight_dropped_total[1m]))",
+          "legendFormat": "inflight-dropped (AUTO-05)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10},
+          "unit": "ops"
+        }
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Controller-thrash + zero-drop evidence",
+      "description": "Single-value panel that surfaces P6 (thrash) and AUTO-05 (zero-drop) evidence at a glance.",
+      "gridPos": {"h": 4, "w": 12, "x": 12, "y": 24},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(goodputlab_controller_thrash_total)",
+          "legendFormat": "controller-thrash total",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(goodputlab_role_flip_inflight_dropped_total)",
+          "legendFormat": "inflight-dropped total (must stay 0)",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Prefix-index size (bytes) + cold-cache lookups",
+      "description": "Router prefix-cache footprint (P8) + cold-cache no-history counter (P7 / RTR-04). Both must stay bounded.",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "goodputlab_prefix_index_size_bytes",
+          "legendFormat": "prefix_index_size_bytes",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(goodputlab_cache_no_history_total[1m]))",
+          "legendFormat": "cold-cache lookups/s",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10},
+          "unit": "bytes"
+        }
+      },
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}}
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Reconcile gate passes",
+      "description": "goodputlab_reconcile_gate_passes_total — bench runs whose client/server reconciliation passed (P10, ≤2% drift per 30s window).",
+      "gridPos": {"h": 4, "w": 12, "x": 12, "y": 28},
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(goodputlab_reconcile_gate_passes_total)",
+          "legendFormat": "passes",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "fieldConfig": {"defaults": {"unit": "short"}}
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["goodputlab", "inference", "p-d-disagg"],
+  "templating": {
+    "list": [
+      {
+        "current": {"selected": false, "text": "Prometheus", "value": "Prometheus"},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "",
+  "title": "GoodputLab — SLO-aware control plane",
+  "uid": "goodputlab-slo-control",
+  "version": 1,
+  "weekStart": ""
+}
