@@ -12,6 +12,7 @@ Metric inventory:
 | goodputlab_ttft_ms                  | Histogram | slo_class      |
 | goodputlab_itl_ms                   | Histogram | slo_class      |
 | goodputlab_queue_depth              | Gauge     | pool           |
+| goodputlab_prefix_index_size_bytes  | Gauge     | —              |
 | goodputlab_kv_tier_hit_total        | Counter   | tier           |
 | goodputlab_kv_tier_miss_total       | Counter   | tier           |
 | goodputlab_spec_acceptance_total    | Counter   | —              |
@@ -70,6 +71,11 @@ class MetricsRegistry:
             "goodputlab_queue_depth",
             "Current in-flight requests per pool (router snapshot)",
             labelnames=("pool",),
+            registry=self.registry,
+        )
+        self.prefix_index_size_bytes = Gauge(
+            "goodputlab_prefix_index_size_bytes",
+            "Estimated byte size of the router prefix index (LRU)",
             registry=self.registry,
         )
 
@@ -135,6 +141,9 @@ class MetricsRegistry:
 
     def set_queue_depth(self, pool: str, depth: int) -> None:
         self.queue_depth.labels(pool=pool).set(depth)
+
+    def set_prefix_index_size_bytes(self, size: float) -> None:
+        self.prefix_index_size_bytes.set(size)
 
     def inc_kv_hit(self, tier: str, n: int = 1) -> None:
         self.kv_tier_hit.labels(tier=tier).inc(n)

@@ -113,6 +113,25 @@ class Router:
         if pool in self._pools:
             self._pools[pool].queue_depth = max(0, depth)
 
+    def publish_metrics(self) -> None:
+        """Snapshot LRU size + per-pool depth into the metrics registry.
+
+        Call this from a periodic poller (e.g. once per second) when
+        telemetry is wired; it is a no-op when ``metrics`` was ``None``
+        on construction (back-compat with earlier tests/orchestrators).
+        """
+        if self._metrics is None:
+            return
+        # Estimate byte footprint: each LRU entry holds a str key + Pool
+        # enum value.  Round up conservatively so the alert threshold
+        # in P8 (>1GB or >10% router RSS) trips before OOM.
+        total_bytes = 0
+        for key, pool in self._prefix_cache.items():
+            total_bytes += len(key.encode("utf-8")) + len(pool.value.encode("utf-8")) + 16
+        self._metrics.set_prefix_index_size_bytes(float(total_bytes))
+        for pool, state in self._pools.items():
+            self._metrics.set_queue_depth(pool.value, state.queue_depth)
+
     def pool_states(self) -> dict[Pool, PoolState]:
         return dict(self._pools)
 
