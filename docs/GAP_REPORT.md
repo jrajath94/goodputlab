@@ -13,23 +13,30 @@ Gaps marked **🔵 Deferred** are documented in roadmap v2 as out of scope.
 
 ## TL;DR
 
-All 8 phases have code; v0.1.0 is shipped and tagged (see `git tag -l` and `CHANGELOG.md`).
-STATE.md frontmatter is **stale** (claims 5-8 deferred, but 5-8 are shipped).
-Six concrete gaps remain, four are fixable in this session without GPU spend, two are blocked.
+All 8 phases have code; v0.1.0 is shipped and tagged (see `git tag -l`
+and `CHANGELOG.md`). The earlier non-GPU gaps called out in this report
+are now closed:
+
+- router `no_history` counter: shipped
+- `prefix_index_size_bytes` gauge: shipped
+- autoscaler thrash / zero-drop counters: shipped
+- parquet whitelist: shipped
+- STATE.md frontmatter: refreshed
+- Grafana dashboard JSON: committed at `deploy/grafana/goodputlab.json`
+
+What remains is mostly hardware-backed validation, not missing core
+implementation. The current actionable backlog is:
 
 | # | Gap | Severity | Effort | GPU? |
 |---|-----|----------|--------|------|
-| 1 | `cache_aware_router_looked_up_no_history` counter missing (RTR cold-cache distinguisher) | 🟢 Fix-this-session | TDD ~30min | No |
-| 2 | `prefix_index_size_bytes` gauge missing (P8/RTR-08 alert) | 🟢 Fix-this-session | TDD ~20min | No |
-| 3 | `role_flip_inflight_dropped`/`controller_thrash_detected` counters missing (AUTO 0-drop + thrash gate) | 🟢 Fix-this-session | TDD ~30min | No |
-| 4 | `.gitignore` blocks `*.parquet` (REPRO-03 conflict) | 🟢 Fix-this-session | Config ~5min | No |
-| 5 | STATE.md frontmatter stale (claims 5-8 deferred) | 🟢 Fix-this-session | Doc ~5min | No |
-| 6 | Grafana dashboard JSON not committed (OBS-02) | 🟡 GPU-blocked | JSON ~30min | No (but visual) — actually needs production pool data |
-| 7 | Full 216-cell sweep (only 24/72 cells reconciled) | 🟡 GPU-blocked | $1.30 quick-fix | **Yes, $1.30** |
-| 8 | Multi-node 2-pod cluster (cuda_ipc → tcp/rdma UCX) | 🟡 GPU-blocked | $$$ | **Yes, ~$30** |
-| 9 | Trained EAGLE-3 head (DraftForge scope) | 🔵 Deferred | Separate project | Out of scope |
-| 10 | Real LMCache gRPC wire client | 🔵 Deferred | v1.1 | Yes |
-| 11 | `autoscaler/` orphan dir at root (only TUNING.md, not a package) | 🟢 Cosmetic | Move or align | No |
+| 1 | Full matrix completion with RAG + agentic prompt-length fix | 🟡 GPU-blocked | low code, low spend | **Yes** |
+| 2 | True disagg validation on separate prefill/decode processes with NIXL metrics | 🟡 GPU-blocked | medium | **Yes** |
+| 3 | Multi-node 2-pod cluster (`cuda_ipc` → `tcp/rdma` UCX) | 🟡 GPU-blocked | medium/high | **Yes** |
+| 4 | Live autoscaler workload-shift validation | 🟡 GPU-blocked | medium | **Yes** |
+| 5 | Real LMCache gRPC wire client | 🔵 Deferred | v1.1 | Yes |
+| 6 | Trained EAGLE-3 head (DraftForge scope) | 🔵 Deferred | separate repo | Out of scope |
+
+The execution-level GPU plan lives in `docs/GPU_EXECUTION_PLAN.md`.
 
 ---
 

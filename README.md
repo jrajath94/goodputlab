@@ -39,7 +39,8 @@ plus the per-topology JSON in `bench/results/real/`. The full 4 × 3 ×
 (actual cost: $1.26 including pod model load), and a 72-cell reduced
 full sweep ran (single model qwen2.5-7b; $1.30; 24/72 reconciled) —
 see "216-cell matrix sweep" below for honest details and the v1.1
-follow-up list.
+follow-up list. Remaining GPU-only work is itemized in
+`docs/GPU_EXECUTION_PLAN.md`.
 
 The Ollama local baseline (`bench/results/ollama/`, M1 Max with
 `qwen3:8b`) currently exposes a measurement hole in the streaming
@@ -188,6 +189,10 @@ plausible-looking garbage.
   controller and drain protocol are unit-tested; the full
   prompt-heavy → generation-heavy shift scenario needs a live
   cluster and is tracked in the v1.1 deferred list.
+- **GPU continuation work is explicitly split out.** The remaining
+  hardware-backed sweep, multi-node disagg validation, and prompt-length
+  fixes are documented in `docs/GPU_EXECUTION_PLAN.md` so another agent
+  can execute them without rediscovering repo intent.
 - **Ollama path has a measurement hole** in TTFT/ITL on
   reasoning-model short prompts (see
   `bench/results/ollama/README.md`). Cloud Run 1 remains the
@@ -209,6 +214,9 @@ python3 -m scripts.real_bench --base-url http://localhost:8000/v1 \
 
 # Ollama local baseline (no GPU spend)
 python3 -m bench.ollama_smoke --model qwen3:8b --n 8
+
+# Remaining GPU-only work package
+sed -n '1,220p' docs/GPU_EXECUTION_PLAN.md
 
 # origin clean invariant (CI also runs this)
 bash scripts/check_origin_clean.sh
