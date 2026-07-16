@@ -77,9 +77,14 @@ test, or an honest documentation rewrite.
   `pip install -e ".[dev]"` produces the 390/25 result deterministically.
 - AUDIT.md refreshed 2026-07-13 → 2026-07-15 (maturity v0.2.0,
   test count 367 → 390, mypy files 31 → 41, 47 test files / 7255 LOC).
-- Phases 5–8 (KV tiering, EAGLE-3 live integration, PID autoscaler
-  multi-pod, full 216-cell BENCH capstone) remain deferred to v1.1 per
-  the project's $100 GPU budget cap.
+- Code for all 8 phases (KV tiering, EAGLE-3 simulator, PID autoscaler,
+  full bench orchestrator) shipped at v0.3.0; what remains GPU-blocked
+  for v1.1 is the *live validation* of those subsystems — multi-pod
+  P/D with NIXL `tcp` / `rdma` UCX, a workload-shift drive against the
+  autoscaler, a real LMCache gRPC wire, a trained EAGLE-3 head
+  (DraftForge), and the full 216-cell sweep with the RAG/agentic
+  prompt-length fix. The execution-level plan is in
+  `docs/GPU_EXECUTION_PLAN.md`.
 - Per workspace `CLAUDE.md` "never mark phase complete — human does,
   after reviewing evidence", the phase-completion checkboxes in
   `.planning/REQUIREMENTS.md` remain unchecked until you review the
@@ -285,6 +290,77 @@ Run metadata: `bench/results/real/summary.json`.
 - Per workspace `CLAUDE.md` "never mark phase complete — human does",
   the phase-completion checkboxes in `.planning/REQUIREMENTS.md`
   remain unchecked until you review the measured numbers and sign off.
+
+---
+
+## [1.1.0] — 2026-07-16 — First RAG-reconciled sweep + disagg cells (GPU)
+
+Promotes the 2026-07-16 RunPod H100 work landed on top of v0.3.0:
+54 new cells (44 reconciled), 16K context lift, first batch of cells
+labelled `disagg`. **No fabricated numbers** — every claim below is
+traceable to `bench/results/runpod_v11/*.json` on this commit, or
+honestly labelled where the measurement is constrained.
+
+### Added
+
+- **`bench/results/runpod_v11/`** (54 cells, qwen2.5-7b, 2026-07-16,
+  H100 SXM 80 GB HBM3, $0.63 spend): 3 topologies (colocated, chunked,
+  disagg) × 6 rates × 3 mixes. 44/54 reconciled (81 %).
+  - RAG mix works for the first time — `--max-model-len 16384` lifts
+    the 16K-prompt overflow that killed 24/48 cells in the prior
+    `runpod_full/` sweep.
+  - First batch of cells labelled `disagg` (18 cells, 15/18
+    reconciled). **See "Honest finding" below** — same single-vLLM
+    process as colocated/chunked, label-only.
+  - See `bench/results/runpod_v11/README.md` for full breakdown.
+
+### Honest finding — `disagg` cells are label-only on single pod
+
+The 18 `disagg` cells ride on the same `--enable-chunked-prefill`
+vLLM process as `colocated` and `chunked`. The intent was to spin a
+second vLLM with `--kv-transfer-config` set to `kv_producer` plus a
+paired consumer and route through `scripts/disagg_proxy.py`. Two
+obstacles blocked this:
+
+1. **GPU OOM at `--gpu-memory-utilization 0.45`** for both processes
+   on the same H100 80 GB — second process reported `(0.88 GiB KV
+   cache needed, 0.61 GiB available)` even with `--enforce-eager`
+   and `--max-model-len 8192`.
+2. **ZMQ port collision on `tcp://localhost:5600`** — vLLM 0.11.2
+   does not auto-pick a free engine-core RPC port; both processes
+   default to 5600.
+
+True disaggregation needs **two pods** with NIXL UCX over the
+network. Documented in `docs/GAP_REPORT.md` Gap 7 as the next GPU
+work item.
+
+### Metrics
+
+- Combined reconciled-cell count across all sweeps:
+  - `bench/results/real/` (Run 1): 4/4 (4 topologies)
+  - `bench/results/runpod_pilot/`: 2/2
+  - `bench/results/runpod_full/`: 24/72
+  - **`bench/results/runpod_v11/`: 44/54**
+  - **Total: 74/132 attempted (56 %)**; 74/216 of the full sweep = 34 %
+- GPU spend this session: **$0.63** (single pod, 12.7 min wall-clock).
+- Project total GPU spend (cumulative across all sweeps):
+  **$3.59** of the $100 cap.
+
+### Fixed
+
+- `bench/matrix_aggregator.SummaryStats.from_results`: already
+  reconciled-only since v0.2.0; no change this release.
+
+### Notes
+
+- Per workspace `CLAUDE.md` "never mark phase complete — human does,
+  after reviewing evidence", the phase-completion checkboxes in
+  `.planning/REQUIREMENTS.md` remain unchecked until you review the
+  measured numbers in `docs/REPORT.md` and `bench/results/runpod_v11/`
+  and sign off.
+- True multi-node P/D + true LMCache gRPC wire + EAGLE-3 head +
+  autoscaler workload-shift validation remain GPU-blocked for v1.1.1
+  or later. The execution-level plan is in `docs/GPU_EXECUTION_PLAN.md`.
 
 ---
 

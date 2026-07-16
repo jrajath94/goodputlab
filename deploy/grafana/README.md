@@ -4,7 +4,7 @@ This directory holds the **OBS-02** deliverable: a Grafana dashboard
 JSON that imports cleanly and references every metric declared by
 `obs/registry.py` (the OBS-01 source of truth).
 
-## Status: PLACEHOLDER (v0.2.x)
+## Status: PLACEHOLDER (v0.3.0+)
 
 The dashboard renders **zero values** against a fresh Prometheus. It
 will populate when a real sweep attaches a recording source. Per

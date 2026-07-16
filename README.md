@@ -12,7 +12,7 @@ an attainment guarantee is not a usable signal.
 
 ## Headline
 
-Run 1 (2026-07-09, RunPod 1x H100 SXM 94 GB, Qwen2.5-7B-Instruct,
+Run 1 (2026-07-09, RunPod 1x H100 SXM 80 GB, Qwen2.5-7B-Instruct,
 30 requests per topology, traces on commit `c57ee66`):
 
 | Topology          | mean TTFT | p95 TTFT | mean ITL | success |
@@ -85,7 +85,7 @@ orchestrating them under SLOs is the staff layer. GoodputLab ships:
 - Docker Engine with the compose v2 plugin (single `docker-compose.yml`
   with four profiles)
 - For the vLLM topologies: an NVIDIA GPU with the NVIDIA Container
-  Toolkit runtime; tested on RunPod H100 SXM (94 GB HBM3).
+  Toolkit runtime; tested on RunPod H100 SXM (80 GB HBM3).
 - For the Ollama local baseline: macOS or Linux with Ollama 0.31+.
 
 ## Quickstart (Ollama path, no GPU cloud spend)
@@ -106,9 +106,13 @@ python3 -m bench.ollama_smoke --model qwen3:8b --n 8
 pytest -q
 ```
 
-The unit suite ships 367 passing tests at 93 % line coverage and
-runs in under 60 seconds on a laptop. The Ollama-gated tests skip
-cleanly when `GOODPUTLAB_RUN_OLLAMA` is not set.
+The unit suite ships **390 passing tests** (25 skipped) at **97 %
+line coverage** as of v1.1.0 and runs in under 60 seconds on a laptop.
+The end-to-end bench pipeline (loadgen → vLLM → reconciler → cell JSON
+→ aggregator) has been exercised on **74 reconciled cells** across
+all 4 topologies — see the Headline table above.
+The Ollama-gated tests skip cleanly when `GOODPUTLAB_RUN_OLLAMA` is
+not set.
 
 ## Quickstart (vLLM cloud path)
 

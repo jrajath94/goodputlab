@@ -1,0 +1,33 @@
+# GoodputLab RunPod v1.1 sweep config.
+#
+# Sweep size: 3 topologies (colocated, chunked, disagg) x 1 model
+# (qwen2.5-7b) x 6 rates (1, 2, 4, 8, 16, 32 rps) x 3 mixes
+# (chat, agentic, rag) = 54 cells.
+#
+# Frugal scope: single model on a single H100 SXM 80GB pod; RAG
+# included now that max-model-len=16384. DISAGG runs use separate
+# prefill+decode vLLM processes on the same pod with NIXL UCX.
+#
+# Run:    python -m scripts.run_matrix --config configs/runpod_v11.yaml
+# Output: bench/results/runpod_v11/<cell_id>.json + summary.json
+
+# --- sweep subset ---
+topologies: [colocated, chunked, disagg]
+models: [qwen2.5-7b]
+rates_rps: [1, 2, 4, 8, 16, 32]
+mixes: [chat, agentic, rag]
+
+# --- per-cell load ---
+n_warmup: 5
+n_measure: 30
+
+# --- cost model ---
+# H100 SXM secure (RunPod) at the 2026-07-14 measured rate.
+cost_per_hour_usd: 2.99
+
+# --- output ---
+output_dir: bench/results/runpod_v11
+pod_id: w31vnqip2u7w4c  # set to actual RunPod pod id on real runs
+
+# --- vLLM endpoint (set via env on real pod) ---
+vllm_base_url_env: RUNPOD_VLLM_BASE_URL

@@ -71,10 +71,10 @@ without confounders.
 
 ### Hardware
 
-Single H100 SXM pod on RunPod (8× vCPU, 80 GB RAM, 1× H100 SXM 80GB).
-NVLink within the box; no inter-pod traffic. UCX over `cuda_ipc` for
-KV transfer — that's why this run is single-pod. Multi-pod disagg
-would use `tcp` or `rdma`; that runs is v1.1.
+Single H100 SXM pod on RunPod (8× vCPU, 80 GB RAM, 1× H100 SXM 80 GB
+HBM3). NVLink within the box; no inter-pod traffic. UCX over
+`cuda_ipc` for KV transfer — that's why this run is single-pod.
+Multi-pod disagg would use `tcp` or `rdma`; that runs is v1.1.
 
 ### Metrics
 
@@ -382,8 +382,21 @@ apply — and where the cost math favors disagg.
   literacy, verifiable artifacts) covered end-to-end.
 - Honest numbers in JSON, with reconciliation against the source of
   truth (`/metrics`).
-- 257 passing tests, CI green on lint/mypy/coverage.
+- 390 passing tests (25 skipped) at 97 % line coverage as of v0.3.0;
+  CI green on ruff/mypy/coverage.
 - An audit (`AUDIT.md`) that maps every claim to a file path.
+
+> **Note on the RunPod 72-cell reduced sweep.** The headline numbers
+> above come from the 4-topology Run 1 in `bench/results/real/`,
+> where every topology was actually exercised on a single H100 with
+> NIXL/UCX KV transfer over `cuda_ipc`. The later 72-cell reduced
+> sweep in `bench/results/runpod_full/` covered only `colocated` and
+> `chunked`; `disagg` and `disagg_tier` cells were never generated
+> (the sweep stopped before reaching them). The Run 1 disagg numbers
+> here are real NIXL-backed disaggregation, not label-only — the
+> sweep-level caveat applies only to the 72-cell campaign, not to
+> this report. See `bench/results/runpod_full/README.md` for the
+> per-topology coverage table.
 
 ### Cost
 

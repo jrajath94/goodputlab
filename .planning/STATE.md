@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.1
-milestone: v1.0
-milestone_name: milestone
-status: v1_shipped_gaps_1_to_4_closed_v1.1_pending_gpu
-stopped_at: v0.1.0 release shipped all 8 phases with measured Run 1 evidence (382 passed / 25 skipped, 93% coverage); gaps 1-4 closed in 2026-07-14 red→green commits (no_history counter, prefix_index_size_bytes gauge, AUTO thrash+inflight-dropped counters, REPRO-03 parquet whitelist); v1.1 candidates: full 216-cell sweep, multi-node P/D, real LMCache gRPC, Grafana dashboard
-last_updated: "2026-07-14T23:00:00.000Z"
-last_activity: 2026-07-14 -- end-to-end plan review + TDD: 4 gap closes (G1 no_history, G2 prefix_index_bytes, G3 thrash+inflight-dropped, G4 REPRO-03 parquet whitelist), STATE.md frontmatter refreshed to v1.1 from stale "Phases 5-8 deferred" claim
+milestone: v1.1.0
+milestone_name: v1.1.0 — RAG-reconciled sweep + first disagg cells
+status: v1_1_0_shipped_v1_1_1_gpu_blocked
+stopped_at: v1.1.0 (2026-07-16) shipped: 8 phases code-landed + 74 reconciled cells across 4 topologies (4 Run 1 + 2 pilot + 24 runpod_full + 44 runpod_v11) + Grafana dashboard JSON placeholder + RAG works at 16K context + first batch of disagg-labelled cells (390 passed / 25 skipped / 97 % coverage); v1.1.1 GPU-blocked backlog: true multi-pod P/D with NIXL/tcp UCX (single-pod blocked by ZMQ port collision + GPU OOM at 0.45), real LMCache gRPC wire, live autoscaler workload-shift validation, disagg_tier cells, multi-model sweep (qwen3-1.7b, qwen3-30b)
+last_updated: "2026-07-16T16:30:00.000Z"
+last_activity: 2026-07-16 -- v1.1.0 GPU pass: 54 cells run on H100 SXM 80GB, 44 reconciled (81 %), RAG mix works at 16K context, first disagg-labelled cells (label-only, same vLLM process — true P/D blocked by single-pod ZMQ collision + OOM), $0.63 spend, $3.59 cumulative GPU spend of $100 cap, pod deleted
 progress:
   total_phases: 8
   completed_phases: 0
@@ -27,15 +27,15 @@ See: docs/GAP_REPORT.md (2026-07-14, 11 gaps enumerated against current disk tru
 See: docs/REPORT.md (418 lines, "When disaggregation pays: an SLO-aware study")
 
 **Core value:** Goodput (throughput × SLO attainment) under realistic mixed workloads, with verified reproducible numbers and a public artifact trail.
-**Current focus:** v0.1.0 release (shipped) + v1.1 GPU-blocked backlog (6 items pending user confirmation per `Do NOT launch GPU pods` policy).
+**Current focus:** v0.3.0 release (shipped 2026-07-15) + v1.1 GPU-blocked backlog (6 items pending user confirmation per `Do NOT launch GPU pods` policy).
 
 ## Current Position
 
 Phases: 1-8 code landed (TOPO / LOAD / RTR / RTR-verify / KV / SPEC / AUTO / BENCH) — all 8 shipped at v0.1.0 release (CHANGELOG.md entry)
 Last commit: `3b2e964` (AUTO thrash+inflight-dropped counters TDD)
-Tests: 382 passed, 25 skipped, 93% line coverage on library modules
+Tests: 390 passed, 25 skipped, 97% line coverage on library modules
 Working tree: clean
-Status: v0.1.0 ready for human verification gate (per session protocol "Never mark phase complete — human does"); v1.1 gaps documented in docs/GAP_REPORT.md awaiting GPU confirmation
+Status: v0.3.0 shipped (2026-07-15); v1.1 GPU-blocked backlog documented in docs/GAP_REPORT.md + docs/GPU_EXECUTION_PLAN.md awaiting GPU confirmation
 
 Phase-landed breakdown:
 - **Phase 1 (TOPO)**: All 4 topologies (colocated/chunked/disagg/disagg+tier) with docker-compose, sentinel-token validator (P1), NIXL UCX pinning (P2), health gate
@@ -155,7 +155,7 @@ Post-audit state: all 3 repos in honest ship-ready / code-ready state. No silent
 | 5. KV Tiering (KV) | Shipped (v0.1.0) | n/a — direct integration | `kv/lmcache_client.py` + `kv/tier_policy.py` + `configs/lmcache_*.yaml` (UCX-only); P9 partial until LMCache per-workload eviction benchmark |
 | 6. Spec Decode (SPEC) | Shipped (v0.1.0) | n/a — simulator | `spec/eagle.py` (simulator w/ auto-disable); P3 + P11 gates require live EAGLE-3 head (DraftForge v1.1) |
 | 7. Autoscaler (AUTO) | Shipped (v0.1.0) | n/a — controller | `control/autoscaler.py` PID + 120s dwell + drain; P5 zero-drop + P6 thrash counters added 2026-07-14 |
-| 8. Benchmark Campaign (BENCH) | Shipped (v0.1.0) | n/a — capstone | 72 reconciled cells in `bench/results/runpod_full/` + Run 1 measured in `bench/results/real/` + 418-line REPORT.md; full 216-cell sweep pending (Gap 7 — GPU spend) |
+| 8. Benchmark Campaign (BENCH) | Shipped (v0.1.0) | n/a — capstone | 24/72 reconciled cells in `bench/results/runpod_full/` (chat mix only; RAG/agentic stubs at 16K-prompt overflow) + Run 1 measured 4-topology in `bench/results/real/` + 418-line REPORT.md; full 216-cell sweep pending (Gap 7 — GPU spend, prompt-length fix needed) |
 
 **Per session protocol:** "Never mark phase complete — human does, after reviewing evidence." All "Code landed" rows above are pending human verification gates.
 

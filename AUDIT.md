@@ -264,29 +264,36 @@ None of 1–8 is implemented in v0.1. The repo is honest about that.
 
 ## Layer 5 — worldclass verdict
 
-**For what v0.1 claims to be (an SLO-aware control plane prototype with
-measured Run 1 evidence and a green CI), this is worldclass.** The
+**For what v0.3.0 claims to be (an SLO-aware control plane prototype
+with measured Run 1 evidence, a green CI, a 2-cell RunPod pilot, a
+24/72 reconciled reduced sweep, a committed Grafana dashboard JSON,
+and full OBS-01 metrics coverage), this is worldclass.** The
 honest story is told end-to-end: every headline number has a JSON
 trail, every control-plane primitive has a property test, every
 integration gap is named.
 
-**For what v0.1 does not claim to be (a multi-node production P/D
-serving system with trained speculative-decoding models and 216-cell
-benchmark coverage), this is not worldclass.** The deferred list is
-the gap, and it is documented.
+**For what v0.3.0 does not claim to be (a multi-node production P/D
+serving system with trained speculative-decoding models, a full
+216-cell benchmark coverage, and real LMCache gRPC wiring), this is
+not worldclass.** The deferred list is the gap, and it is documented
+in `docs/GPU_EXECUTION_PLAN.md` and `docs/GAP_REPORT.md`.
 
 ## Layer 6 — answer to "are we done?"
 
-**Done for v0.1 release.** All 4 phases (Phase 1–4) shipped per
-CHANGELOG. 257 tests pass. CI green. Ollama local path works end to
-end. Measured Run 1 numbers in README. Origin clean.
+**Done for v0.3.0 release.** All 8 phases shipped per CHANGELOG and
+STATE.md Phase Progress table. 390 tests pass (25 skipped) at 97 %
+line coverage. CI green. Ollama local path works end to end.
+Measured Run 1 numbers in README. RunPod pilot + 24/72 reconciled
+reduced sweep on disk. Origin clean.
 
-**Not done for v1.1.** 5 deferred items above. Most valuable: the
-full bench matrix (~$400 GPU).
+**Not done for v1.1.** Six GPU-blocked items (full 216-cell sweep
+with prompt fix, multi-node P/D, live autoscaler workload-shift,
+real LMCache gRPC, trained EAGLE-3 head in DraftForge, failure-drill
+appendix). See `docs/GPU_EXECUTION_PLAN.md` for the execution plan.
 
 ## Layer 7 — answer to "is it worldclass?"
 
-For a Staff-track resume in inference roles: **yes, as v0.1**. The
+For a Staff-track resume in inference roles: **yes, as v0.3.0**. The
 five signals from the workspace `CLAUDE.md`:
 
 | Signal                            | Status                                            |
