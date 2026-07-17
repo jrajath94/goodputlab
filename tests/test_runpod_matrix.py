@@ -353,6 +353,86 @@ def test_run_all_records_pod_id(tmp_path: Path) -> None:
     assert report.pod_id == "my-runpod-id-abc123"
 
 
+# ---------- stop_on_unreconciled ----------
+
+
+def test_stop_on_unreconciled_halts_after_first_bad_cell(tmp_path: Path) -> None:
+    """Paid-run invariant: never burn GPU past a broken cell.
+
+    All telemetry fails (status 500) → success_rate 0 → reconcile_passes
+    False → the sweep must stop after cell 1 of 2.
+    """
+    spec = MatrixSpec(
+        topologies=[Topology.COLOCATED],
+        models=[Model.QWEN2_5_7B],
+        rates_rps=[2, 8],
+        mixes=[Mix.CHAT],
+    )
+    matrix = BenchMatrix(
+        cells_dir=tmp_path,
+        cost_per_hour_usd=1.79,
+        pod_id="pod-stop",
+        client_factory=_FakeClientFactory(),
+        replay_factory=lambda _c: _FakeReplay([_telemetry(status=500)]),
+        thermal=StubThermalSource(
+            ThermalReading(gpu_temp_c=60, gpu_util_pct=70, gpu_mem_used_mb=40000)
+        ),
+        matrix_spec=spec,
+    )
+    report = matrix.run_all(stop_on_unreconciled=True)
+    # First cell completed (JSON written, marked reconcile_passes=false),
+    # second cell never attempted.
+    assert report.n_cells_completed == 1
+    assert len(list(tmp_path.glob("*.json"))) == 1
+
+
+def test_stop_on_unreconciled_stops_on_raised_cell(tmp_path: Path) -> None:
+    _FlakyReplay.reset()
+    spec = MatrixSpec(
+        topologies=[Topology.COLOCATED],
+        models=[Model.QWEN2_5_7B],
+        rates_rps=[2, 8, 16],
+        mixes=[Mix.CHAT],
+    )
+    matrix = BenchMatrix(
+        cells_dir=tmp_path,
+        cost_per_hour_usd=1.79,
+        pod_id="pod-stop-raise",
+        client_factory=_FakeClientFactory(),
+        replay_factory=lambda _c: _FlakyReplay(fail_after=1),
+        thermal=StubThermalSource(
+            ThermalReading(gpu_temp_c=60, gpu_util_pct=70, gpu_mem_used_mb=40000)
+        ),
+        matrix_spec=spec,
+    )
+    report = matrix.run_all(stop_on_unreconciled=True)
+    assert report.n_cells_completed == 1
+    assert report.n_cells_failed == 1  # third cell never attempted
+
+
+def test_default_keeps_going_past_unreconciled(tmp_path: Path) -> None:
+    """Without the flag (dry-run/mock benches), all cells still run."""
+    spec = MatrixSpec(
+        topologies=[Topology.COLOCATED],
+        models=[Model.QWEN2_5_7B],
+        rates_rps=[2, 8],
+        mixes=[Mix.CHAT],
+    )
+    matrix = BenchMatrix(
+        cells_dir=tmp_path,
+        cost_per_hour_usd=1.79,
+        pod_id="pod-keep",
+        client_factory=_FakeClientFactory(),
+        replay_factory=lambda _c: _FakeReplay([_telemetry(status=500)]),
+        thermal=StubThermalSource(
+            ThermalReading(gpu_temp_c=60, gpu_util_pct=70, gpu_mem_used_mb=40000)
+        ),
+        matrix_spec=spec,
+    )
+    report = matrix.run_all()
+    assert report.n_cells_completed == 2
+
+
 def test_run_all_creates_pilot_sweep(tmp_path: Path) -> None:
     """Pilot: 1 topo × 1 model × 2 rates × 1 mix = 2 cells."""
     spec = MatrixSpec(

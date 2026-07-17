@@ -132,3 +132,45 @@ def test_pilot_yaml_loads_without_error() -> None:
     # Pilot: 1 topo x 1 model x 2 rates x 1 mix = 2 cells
     assert len(cells) == 2
     assert cfg.pod_id == "local-pilot"
+
+
+_REPO_ROOT = Path(__file__).parent.parent
+
+
+@pytest.mark.parametrize(
+    ("name", "expected_cells"),
+    [
+        ("runpod_matrix.yaml", 2),
+        ("runpod_matrix_full.yaml", 72),
+        ("runpod_v11.yaml", 54),
+        ("runpod_smoke.yaml", 1),
+        ("runpod_paired_chat.yaml", 4),
+        ("runpod_paired_disagg.yaml", 2),
+        ("runpod_context_repair.yaml", 2),
+    ],
+)
+def test_committed_config_validates(name: str, expected_cells: int) -> None:
+    """Every committed runpod config must load + enumerate correctly."""
+    path = _REPO_ROOT / "configs" / name
+    assert path.exists(), f"committed config missing: {name}"
+    cfg = load_matrix_config(path)
+    assert cfg.to_matrix_spec().total_cells() == expected_cells
+
+
+def test_no_unregistered_runpod_configs() -> None:
+    """New runpod_*.yaml files must be registered in the table above
+    (forces a conscious cell-count + cost review before they can run)."""
+    registered = {
+        "runpod_matrix.yaml",
+        "runpod_matrix_full.yaml",
+        "runpod_v11.yaml",
+        "runpod_smoke.yaml",
+        "runpod_paired_chat.yaml",
+        "runpod_paired_disagg.yaml",
+        "runpod_context_repair.yaml",
+    }
+    on_disk = {p.name for p in (_REPO_ROOT / "configs").glob("runpod_*.yaml")}
+    assert on_disk == registered, (
+        f"unregistered configs: {sorted(on_disk - registered)}; "
+        f"missing configs: {sorted(registered - on_disk)}"
+    )

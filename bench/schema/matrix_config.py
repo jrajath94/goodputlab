@@ -38,6 +38,15 @@ class MatrixSweepConfig(BaseModel):
     # Cost model.
     cost_per_hour_usd: float = Field(default=1.79, gt=0.0)
 
+    # Spend gating: smoke configs (single cheap health cell) skip the
+    # --approve-cost / APPROVE_GPU_SPEND gate; everything else requires it.
+    smoke: bool = False
+
+    # Context budget for the vLLM server (--max-model-len). When set, the
+    # prompt preflight aborts the run if any generated prompt + output
+    # budget would overflow it — instead of paying for HTTP 400s.
+    max_model_len: int | None = Field(default=None, ge=1)
+
     # Output.
     output_dir: Path = Field(default=Path("bench/results/runpod_pilot"))
     pod_id: str = Field(default="local-pilot", min_length=1)

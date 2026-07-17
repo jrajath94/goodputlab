@@ -4,13 +4,20 @@ Loads a ``MatrixSweepConfig`` from YAML (see ``configs/runpod_matrix.yaml``),
 builds a :class:`BenchMatrix`, drives it through the cell pipeline, and
 writes a ``summary.json`` next to the per-cell JSONs.
 
-Usage::
+Usage (staged ladder — see docs/GPU_COST_OPTIMIZATION.md)::
 
-    # Pilot sweep (2 cells, ~$0.10):
-    python -m scripts.run_matrix --config configs/runpod_matrix.yaml
+    # Rung 2 — one-cell smoke (gate-exempt, ~$0.50-$0.80):
+    python -m scripts.run_matrix --config configs/runpod_smoke.yaml
 
-    # Full 216-cell sweep:
-    python -m scripts.run_matrix --config configs/runpod_matrix_full.yaml
+    # Rung 3 — paired topology probe (needs approval, ~$1-$2):
+    python -m scripts.run_matrix --config configs/runpod_paired_chat.yaml --approve-cost
+
+    # Rung 6 — full 216-cell sweep (FINAL POLISH ONLY, never for debugging):
+    python -m scripts.run_matrix --config configs/runpod_matrix_full.yaml --approve-cost
+
+Safety defaults: resume (skip valid cell JSONs), stop after the first
+unreconciled measured cell, abort on predicted context overflow, and
+refuse paid runs without --approve-cost / APPROVE_GPU_SPEND=yes.
 
 Environment::
 
@@ -22,6 +29,7 @@ Environment::
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -30,6 +38,14 @@ from pathlib import Path
 
 from bench.cell_runner import NvidiaSmiThermalSource
 from bench.matrix_aggregator import write_summary
+from bench.preflight import (
+    APPROVE_ENV,
+    build_cost_preflight,
+    build_prompt_preflight,
+    format_cost_preflight,
+    format_prompt_preflight,
+    spend_approved,
+)
 from bench.runpod_matrix import BenchMatrix
 from bench.schema.matrix_config import load_matrix_config
 from loadgen.client import VllmHttpClient
@@ -89,7 +105,34 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--run-all",
         action="store_true",
-        help="Re-run every cell (default: skip cells with existing JSON)",
+        help=(
+            "Explicit rerun: re-execute every cell, overwriting existing "
+            "JSONs (default: resume — skip cells with a valid JSON on disk)"
+        ),
+    )
+    parser.add_argument(
+        "--approve-cost",
+        action="store_true",
+        help=(
+            "Authorize paid GPU spend for non-smoke runs. Alternative: "
+            f"export {APPROVE_ENV}=yes. Smoke configs (smoke: true) are exempt."
+        ),
+    )
+    parser.add_argument(
+        "--keep-going",
+        action="store_true",
+        help=(
+            "Do not stop after the first unreconciled measured cell "
+            "(default: stop immediately — never burn GPU past a broken cell)"
+        ),
+    )
+    parser.add_argument(
+        "--allow-overflow",
+        action="store_true",
+        help=(
+            "Proceed even if the prompt preflight detects context-window "
+            "overflow vs max_model_len (default: abort before spend)"
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -128,7 +171,64 @@ def main(argv: list[str] | None = None) -> int:
         matrix_spec=matrix_spec,
     )
 
-    report = matrix.run_all() if args.run_all else matrix.run_pending()
+    # ---- preflight: cost + prompt/context, both before any request ----
+    pending = matrix.all_cell_specs() if args.run_all else matrix.pending_cell_specs()
+    cost_pf = build_cost_preflight(
+        pending=pending,
+        n_total_cells=total_cells,
+        cost_per_hour_usd=cfg.cost_per_hour_usd,
+        output_dir=str(cfg.output_dir),
+        smoke=cfg.smoke,
+    )
+    print(format_cost_preflight(cost_pf), flush=True)
+    if args.run_all:
+        print(
+            "[run_matrix] WARNING: --run-all set; existing cell JSONs in "
+            f"{cfg.output_dir} will be overwritten.",
+            flush=True,
+        )
+
+    if not pending:
+        print("[run_matrix] nothing pending; output dir already complete.", flush=True)
+
+    prompt_pf = build_prompt_preflight(pending, cfg.max_model_len)
+    print(format_prompt_preflight(prompt_pf), flush=True)
+    if not prompt_pf.ok and not args.allow_overflow:
+        print(
+            "[run_matrix] ERROR: context overflow predicted; aborting before "
+            "spend. Re-run with --allow-overflow only if the overflow is "
+            "intentional.",
+            file=sys.stderr,
+        )
+        return 6
+
+    # ---- spend gate: non-smoke runs need explicit approval ----
+    if pending and not cfg.smoke and not spend_approved(args.approve_cost):
+        print(
+            f"[run_matrix] ERROR: paid run not approved. Estimated cost "
+            f"${cost_pf.est_cost_usd:.2f} for {cost_pf.n_pending_cells} cells. "
+            f"Re-run with --approve-cost or export {APPROVE_ENV}=yes.",
+            file=sys.stderr,
+        )
+        return 5
+
+    # Record what the run is about to do — the prompt-length distribution
+    # is part of the run's evidence trail (see docs/GPU_COST_OPTIMIZATION.md).
+    preflight_path = Path(cfg.output_dir) / "preflight.json"
+    preflight_path.parent.mkdir(parents=True, exist_ok=True)
+    preflight_path.write_text(
+        json.dumps(
+            {"cost": cost_pf.to_dict(), "prompt": prompt_pf.to_dict()}, indent=2
+        )
+    )
+    print(f"[run_matrix] preflight recorded: {preflight_path}", flush=True)
+
+    stop_on_unreconciled = not args.keep_going
+    report = (
+        matrix.run_all(stop_on_unreconciled=stop_on_unreconciled)
+        if args.run_all
+        else matrix.run_pending(stop_on_unreconciled=stop_on_unreconciled)
+    )
     print(
         f"[run_matrix] done: {report.n_cells_completed} completed, "
         f"{report.n_cells_failed} failed, "

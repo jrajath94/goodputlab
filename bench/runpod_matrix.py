@@ -139,17 +139,19 @@ class BenchMatrix:
 
     # --- execution ---
 
-    def run_all(self) -> CampaignReport:
+    def run_all(self, stop_on_unreconciled: bool = False) -> CampaignReport:
         """Run every cell in the matrix, regardless of existing JSON."""
-        return self._run(self.all_cell_specs())
+        return self._run(self.all_cell_specs(), stop_on_unreconciled)
 
-    def run_pending(self) -> CampaignReport:
+    def run_pending(self, stop_on_unreconciled: bool = False) -> CampaignReport:
         """Resume-safe: skip cells that already have a valid JSON."""
-        return self._run(self.pending_cell_specs())
+        return self._run(self.pending_cell_specs(), stop_on_unreconciled)
 
     # --- internals ---
 
-    def _run(self, specs: list[CellSpec]) -> CampaignReport:
+    def _run(
+        self, specs: list[CellSpec], stop_on_unreconciled: bool = False
+    ) -> CampaignReport:
         started = datetime.now(UTC)
         n_completed = 0
         n_failed = 0
@@ -160,9 +162,24 @@ class BenchMatrix:
             except Exception:  # noqa: BLE001 — one cell's failure must not abort the sweep
                 logger.exception("cell %s failed", spec.cell_id)
                 n_failed += 1
+                if stop_on_unreconciled:
+                    logger.error(
+                        "cell %s raised — stopping sweep (stop_on_unreconciled). "
+                        "Fix the failure before re-running; do not burn GPU on repeats.",
+                        spec.cell_id,
+                    )
+                    break
                 continue
             n_completed += 1
             total_duration_s += result.duration_s
+            if stop_on_unreconciled and not result.reconcile_passes:
+                logger.error(
+                    "cell %s did not reconcile — stopping sweep "
+                    "(stop_on_unreconciled). Result JSON is marked "
+                    "reconcile_passes=false; diagnose before spending more.",
+                    spec.cell_id,
+                )
+                break
         ended = datetime.now(UTC)
         wall_s = (ended - started).total_seconds()
         cost_usd = (wall_s / 3600.0) * self._cost_per_hour
