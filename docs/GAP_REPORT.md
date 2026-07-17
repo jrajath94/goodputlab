@@ -223,10 +223,15 @@ unreconciled cells in `runpod_v11/` are HTTP 400 responses at the
 - Multi-node P/D (`cuda_ipc` fails on separate pods) needs topology testing for `tcp` / `rdma` UCX.
 - `disagg` and `disagg_tier` cells in the reduced sweep were never generated (sweep stopped before reaching them); re-running with `run_pending` would resume from chunked × qwen2.5-7b and pick up the remaining cells.
 
-**Cheapest fix:** bump `--max-model-len 16384` and re-run the
-pending cells. Estimated $1–2 for the prompt-fix subset. This is
-explicitly listed as the first GPU-blocked item in
-`docs/GPU_EXECUTION_PLAN.md`.
+**Cheapest fix (updated 2026-07-16):** 16384 is NOT enough — the v1.1
+sweep already ran at `--max-model-len=16384` and RAG cells still
+returned HTTP 400. The local prompt preflight (`bench/preflight.py`,
+run at $0 on the M1) measures the RAG worst-case prompt+output at
+**18,539 tokens**; the correct budget is `--max-model-len 20480`.
+Verify with the 2-cell `configs/runpod_context_repair.yaml` probe
+(<$1) before re-running any pending cells. This is the first
+GPU-blocked item in `docs/GPU_EXECUTION_PLAN.md`, executed through the
+staged ladder in `docs/GPU_COST_OPTIMIZATION.md`.
 
 **Need user confirmation** per `Do NOT launch GPU pods` policy.
 

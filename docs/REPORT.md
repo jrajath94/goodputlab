@@ -386,17 +386,23 @@ apply — and where the cost math favors disagg.
   CI green on ruff/mypy/coverage.
 - An audit (`AUDIT.md`) that maps every claim to a file path.
 
-> **Note on the RunPod 72-cell reduced sweep.** The headline numbers
-> above come from the 4-topology Run 1 in `bench/results/real/`,
-> where every topology was actually exercised on a single H100 with
-> NIXL/UCX KV transfer over `cuda_ipc`. The later 72-cell reduced
-> sweep in `bench/results/runpod_full/` covered only `colocated` and
-> `chunked`; `disagg` and `disagg_tier` cells were never generated
-> (the sweep stopped before reaching them). The Run 1 disagg numbers
-> here are real NIXL-backed disaggregation, not label-only — the
-> sweep-level caveat applies only to the 72-cell campaign, not to
-> this report. See `bench/results/runpod_full/README.md` for the
-> per-topology coverage table.
+> **Note on topology provenance (corrected 2026-07-16).** The headline
+> numbers above come from the 4-topology Run 1 in `bench/results/real/`.
+> Run 1 was **single-process topology emulation**: one vLLM process
+> served every topology label, with the router making the pool decision
+> (see `RUNPOD.md` §"Measured numbers — Run 1": "true P/D would require
+> 2 vLLM processes + NIXL — out of budget for this run"; the result
+> JSONs carry one `base_url` and no transfer metrics). Run 1 therefore
+> isolates the router/cache layer, and its `disagg`/`disagg_tier` rows
+> must not be read as true P/D disaggregation measurements. **No result
+> directory on disk contains true two-process P/D evidence yet** — not
+> Run 1, not the 72-cell reduced sweep (`disagg` cells never generated),
+> not the v1.1 sweep (18 `disagg`-labelled cells served by the same
+> single process, see `bench/results/runpod_v11/README.md`). True
+> disagg is GPU-blocked and gated behind
+> `configs/runpod_paired_disagg.yaml`, which requires separate
+> prefill/decode processes with transfer metrics before any cell counts.
+> See `bench/results/runpod_full/README.md` for per-topology coverage.
 
 ### Cost
 

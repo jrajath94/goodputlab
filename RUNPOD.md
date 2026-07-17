@@ -4,10 +4,20 @@
 > original 4×H100 multi-pod plan below was **deferred** in favour of a
 > cheaper 1×H100 single-pod sequential approach. Two sessions ran:
 > Run 1 (4 topologies × qwen2.5-7b × 30 reqs, $3.50) and the matrix
-> pipeline validation (pilot + 72-cell reduced sweep, total $2.56). The
-> 4×H100 multi-pod execution is planned for v1.1 once the RAG/agentic
-> prompt fix lands (see `bench/results/runpod_full/README.md` for the
-> v1.1 follow-up list).
+> pipeline validation (pilot + 72-cell reduced sweep, total $2.56).
+>
+> **Current execution policy (2026-07-16):** all further GPU work goes
+> through the staged frugal ladder in `docs/GPU_COST_OPTIMIZATION.md`
+> (smoke → paired probes → context repair → focused → full), driven by
+> `configs/runpod_smoke.yaml` / `runpod_paired_chat.yaml` /
+> `runpod_paired_disagg.yaml` / `runpod_context_repair.yaml`. Paid runs
+> require `--approve-cost` or `APPROVE_GPU_SPEND=yes` and stop at the
+> first unreconciled cell. The 4×H100 multi-pod plan below stays
+> DEFERRED and per the cost plan should be avoided unless explicitly
+> proving multi-node/multi-GPU behavior. The RAG/agentic prompt failure
+> root cause is measured (worst RAG prompt+output = 18,539 tokens →
+> needs `--max-model-len 20480`); verify via
+> `configs/runpod_context_repair.yaml` before any sweep.
 
 ## What the bench runs
 
@@ -23,6 +33,12 @@ topology:
 
 Plus 3 failure drills (P1 node kill, P5 KV stall, P12 prefix flood)
 per topology = 12 run slots.
+
+> Note: the table above describes the *intended* topology profiles.
+> Every run executed so far (Run 1, pilot, 72-cell, v1.1) served all
+> topology labels from a single vLLM process — the disagg rows measure
+> routing, not true P/D transfer. True disagg evidence is still open
+> and gated behind `configs/runpod_paired_disagg.yaml`.
 
 ## Sizing per run — 4×H100 plan (DEFERRED to v1.1)
 
@@ -86,6 +102,12 @@ Before any `create-pod` call, this file must be:
 
 The provision script (`scripts/provision.sh`) checks for an
 `APPROVED=yes` env var; if absent it exits early.
+
+In addition, `scripts/run_matrix.py` enforces a per-run spend gate:
+non-smoke configs refuse to fire requests without `--approve-cost` or
+`APPROVE_GPU_SPEND=yes`, print a cost preflight (pending cells, est
+wall time, hourly rate, est cost) first, and abort before spend if the
+prompt preflight predicts context-window overflow.
 
 ## Cost-control safeguards
 

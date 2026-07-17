@@ -13,22 +13,29 @@ an attainment guarantee is not a usable signal.
 ## Headline
 
 Run 1 (2026-07-09, RunPod 1x H100 SXM 80 GB, Qwen2.5-7B-Instruct,
-30 requests per topology, traces on commit `c57ee66`):
+30 requests per topology, traces on commit `c57ee66`). Run 1 is
+**single-process topology emulation**: one vLLM process served every
+row; the router made the pool decision (`RUNPOD.md` §"Measured numbers
+— Run 1"). It isolates the router/cache layer — the disagg rows carry
+no real P-to-D transfer cost:
 
-| Topology          | mean TTFT | p95 TTFT | mean ITL | success |
+| Topology (emulated routing) | mean TTFT | p95 TTFT | mean ITL | success |
 |-------------------|-----------|----------|----------|---------|
 | colocated         | 76.5 ms   | 127.3 ms | 6.38 ms  | 100%    |
 | chunked-prefill   | 79.6 ms   | 137.4 ms | 6.33 ms  | 100%    |
-| disagg (NIXL)     | 77.2 ms   | 126.5 ms | 6.32 ms  | 100%    |
-| disagg_tier (LMCache) | 69.6 ms | 111.6 ms | 6.21 ms | 100%    |
+| disagg (routing only, no P/D transfer) | 77.2 ms | 126.5 ms | 6.32 ms | 100%    |
+| disagg_tier (prefix cache path) | 69.6 ms | 111.6 ms | 6.21 ms | 100%    |
 
 Honest reading:
 
-- KV tiering wins TTFT on this trace (−9 % mean, −12 % p95 vs colocation).
-- Plain disagg without tiering is statistically indistinguishable
-  from colocation at 30 requests, 4–8K prompts. The P-to-D transfer
-  overhead cancels the prefill-decode parallelism gain until batch
-  and prompt length change shape.
+- The prefix-cache path wins TTFT on this trace (−9 % mean, −12 % p95
+  vs colocation) — deterministic replay hits the same prefixes
+  (cache_hit_rate 1.00).
+- The disagg-routing row is statistically indistinguishable from
+  colocation, which is the expected result when there is no real
+  KV transfer in the path: the router layer itself adds ~nothing.
+  Measuring the true P/D transfer cost requires two vLLM processes +
+  NIXL and is still open (`configs/runpod_paired_disagg.yaml`).
 - Chunked-prefill is *not* faster than colocation here, in the same
   direction the literature predicts for small models with low batch.
 
@@ -106,11 +113,14 @@ python3 -m bench.ollama_smoke --model qwen3:8b --n 8
 pytest -q
 ```
 
-The unit suite ships **390 passing tests** (25 skipped) at **97 %
-line coverage** as of v1.1.0 and runs in under 60 seconds on a laptop.
-The end-to-end bench pipeline (loadgen → vLLM → reconciler → cell JSON
-→ aggregator) has been exercised on **74 reconciled cells** across
-all 4 topologies — see the Headline table above.
+The unit suite ships **415 passing tests** (25 skipped) at **93 %
+line coverage** as of 2026-07-16 and runs in under 60 seconds on a
+laptop. The end-to-end bench pipeline (loadgen → vLLM → reconciler →
+cell JSON → aggregator) has been exercised on **74 reconciled cells**.
+Only the 4 Run 1 cells span all 4 topology labels (single-process
+emulation — see Headline note); the pilot is colocated-only, the
+reduced sweep colocated+chunked, and the v1.1 sweep includes 15
+reconciled label-only `disagg` cells.
 The Ollama-gated tests skip cleanly when `GOODPUTLAB_RUN_OLLAMA` is
 not set.
 
@@ -237,18 +247,28 @@ The full sweep is 4 topologies × 3 models × 6 rates × 3 mixes = **216 cells**
 | Rates (rps) | 1, 2, 4, 8, 16, 32 |
 | Mixes | `chat`, `rag`, `agentic` |
 
-A **2-cell pilot** (`colocated × qwen2.5-7b × {4, 8 rps} × chat`) exercises
-the full bench pipeline end-to-end on real GPU before committing to the
-full campaign.
+**Execution is staged, never direct-to-full.** GPU runs climb the cost
+ladder in `docs/GPU_COST_OPTIMIZATION.md`: local Ollama plumbing ($0) →
+1-cell smoke (`configs/runpod_smoke.yaml`, ~$0.50–0.80) → paired topology
+probes (`runpod_paired_chat.yaml`, `runpod_paired_disagg.yaml`, $1–2) →
+RAG/agentic context repair (`runpod_context_repair.yaml`, <$1) → focused
+sweep → full 216-cell matrix ($8–12, hard cap $20). The full matrix is a
+**final polish run only — never a debugging vehicle**.
 
-**Pilot invocation:**
+**Invocation (smoke, then paired):**
 
 ```bash
-python -m scripts.run_matrix --config configs/runpod_matrix.yaml
+python -m scripts.run_matrix --config configs/runpod_smoke.yaml
+python -m scripts.run_matrix --config configs/runpod_paired_chat.yaml --approve-cost
 ```
 
 The runner reads `RUNPOD_VLLM_BASE_URL` from the environment (default for
-in-cluster runs: `http://127.0.0.1:8000/v1`).
+in-cluster runs: `http://127.0.0.1:8000/v1`). Before firing a single
+request it prints a cost preflight (pending cells, dimensions, est wall
+time, hourly rate, est cost, output dir) and a prompt/context preflight
+(exact prompt-token distribution per mix vs `max_model_len`); non-smoke
+runs refuse to start without `--approve-cost` or `APPROVE_GPU_SPEND=yes`,
+and paid runs stop at the first unreconciled measured cell.
 
 **Cost on H100 SXM secure @ $2.99/hr** (RunPod 2026-07 pricing):
 
@@ -258,8 +278,13 @@ in-cluster runs: `http://127.0.0.1:8000/v1`).
 | Per (topology, model) pair — vLLM warmup | 12 pairs | ~$0.06 each |
 | Pilot (2 cells, 1 model load) — measured 2026-07-14 | 2 | **$1.26** |
 | Full reduced sweep (qwen2.5-7b only, single vLLM) — measured 2026-07-14 | 72 | **$1.30** (24/72 reconciled) |
-| Full 216-cell sweep — not yet run; estimated | 216 | ~$10–15 sequential |
-| Full 216-cell sweep, parallelized across 4–8 H100s — not yet run | 216 | ~$600–1200 (project budget tier) |
+| Full 216-cell sweep — not yet run; estimated | 216 | ~$8–12 sequential (hard cap $20, see `docs/GPU_COST_OPTIMIZATION.md`) |
+
+An earlier plan parallelized the full sweep across 4–8 H100s (~$600–1200).
+That tier is retired: it answers no additional research question, and the
+frugal ladder reaches the same evidence sequentially on one GPU. Avoid
+multi-GPU rentals unless explicitly proving multi-node P/D behavior
+(budgeted separately at $10–15).
 
 Per-cell cost = wall-clock × $2.99/3600. Per-cell wall-clock is dominated by
 the 35-request replay + reconcile + thermal snapshot; the rate extremes

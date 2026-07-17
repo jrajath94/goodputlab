@@ -3,6 +3,13 @@
 Purpose: isolate every remaining hardware-backed task so another agent can
 execute it without touching the already-finished non-GPU control-plane work.
 
+Execution strategy: every task below MUST go through the staged cost
+ladder in `docs/GPU_COST_OPTIMIZATION.md` (local/Ollama $0 → 1-cell smoke
+~$0.50-$0.80 → paired probes $1-$2 → context repair <$1 → focused sweep →
+full matrix $8-$12, hard cap $20). The full matrix is final polish only,
+never a debugging vehicle. Paid runs require `--approve-cost` or
+`APPROVE_GPU_SPEND=yes`; the runner stops at the first unreconciled cell.
+
 Status as of 2026-07-15:
 
 - Non-GPU implementation is complete enough to test locally.
@@ -26,19 +33,25 @@ Current failure: many `rag` and `agentic` cells overflow the served model's
 context window. The issue is upstream at vLLM admission, not in the
 aggregator or reconciler.
 
+Root cause is now measured (local prompt preflight, 2026-07-16): RAG worst
+prompt+output is **18,539 tokens**, so `16384` can never admit the shipped
+RAG prompts. Agentic worst case is 11,710 (fits in 16384).
+
 Required actions:
 
-1. Increase `--max-model-len` for the real vLLM runs to a value that covers
-   the shipped RAG prompts. Start with `16384`.
-2. Re-run the pending cells with `BenchMatrix.run_pending`.
-3. Keep using the existing reconcile gate; do not count unreconciled cells
-   as measured.
+1. Launch vLLM with `--max-model-len 20480` (check memory headroom first
+   with `nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv`).
+2. Verify the fix with the 2-cell `configs/runpod_context_repair.yaml`
+   probe before touching any larger sweep.
+3. Re-run pending cells only (resume is the runner default); keep the
+   reconcile gate; do not count unreconciled cells as measured.
 
-Suggested command path:
+Suggested command path (staged — smoke first, then context repair):
 
 ```bash
 export RUNPOD_VLLM_BASE_URL=http://127.0.0.1:8000/v1
-python -m scripts.run_matrix --config configs/runpod_matrix.yaml
+python -m scripts.run_matrix --config configs/runpod_smoke.yaml
+python -m scripts.run_matrix --config configs/runpod_context_repair.yaml --approve-cost
 ```
 
 Acceptance:
