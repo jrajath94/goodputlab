@@ -1,6 +1,6 @@
 # Rung 3b — paired disagg probe (docs/GPU_COST_OPTIMIZATION.md).
 #
-# cell count:      2 (colocated,disagg × qwen2.5-7b × 16 rps × chat)
+# cell count:      4 (colocated,disagg × qwen2.5-7b × 4,16 rps × chat)
 # expected wall:   ~10 min after model load
 # expected cost:   ~$1 on H100 PCIe community (~$1.99/hr)
 # promotion gate:  both cells reconcile AND disagg row has true P/D
@@ -16,7 +16,7 @@
 
 topologies: [colocated, disagg]
 models: [qwen2.5-7b]
-rates_rps: [16]
+rates_rps: [4, 16]
 mixes: [chat]
 n_warmup: 3
 n_measure: 12

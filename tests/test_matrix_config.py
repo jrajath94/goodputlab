@@ -145,7 +145,7 @@ _REPO_ROOT = Path(__file__).parent.parent
         ("runpod_v11.yaml", 54),
         ("runpod_smoke.yaml", 1),
         ("runpod_paired_chat.yaml", 4),
-        ("runpod_paired_disagg.yaml", 2),
+        ("runpod_paired_disagg.yaml", 4),
         ("runpod_context_repair.yaml", 2),
     ],
 )
@@ -180,10 +180,10 @@ def test_restrict_topologies_narrows_sweep() -> None:
     cfg = load_matrix_config(_REPO_ROOT / "configs" / "runpod_paired_disagg.yaml")
     narrowed = cfg.restrict_topologies(["disagg"])
     spec = narrowed.to_matrix_spec()
-    assert spec.total_cells() == 1
+    assert spec.total_cells() == 2
     assert [t.value for t in spec.topologies] == ["disagg"]
     # Original config untouched (model_copy semantics).
-    assert cfg.to_matrix_spec().total_cells() == 2
+    assert cfg.to_matrix_spec().total_cells() == 4
 
 
 def test_restrict_topologies_rejects_names_outside_sweep() -> None:

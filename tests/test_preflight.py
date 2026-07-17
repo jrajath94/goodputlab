@@ -189,7 +189,7 @@ def test_prompt_preflight_to_dict_round_trips() -> None:
     [
         ("runpod_smoke.yaml", 1, True),
         ("runpod_paired_chat.yaml", 4, False),
-        ("runpod_paired_disagg.yaml", 2, False),
+        ("runpod_paired_disagg.yaml", 4, False),
         ("runpod_context_repair.yaml", 2, False),
     ],
 )

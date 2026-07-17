@@ -455,3 +455,21 @@ def test_run_all_creates_pilot_sweep(tmp_path: Path) -> None:
     report = matrix.run_all()
     assert report.n_cells_completed == 2
     assert len(list(tmp_path.glob("*.json"))) == 2
+
+
+def test_pending_ignores_runner_sidecar_files(tmp_path: Path) -> None:
+    """summary.json / preflight.json must not be scanned as cell JSONs."""
+    (tmp_path / "summary.json").write_text("{}")
+    (tmp_path / "preflight.json").write_text('{"cost": {}}')
+    matrix = BenchMatrix(
+        cells_dir=tmp_path,
+        cost_per_hour_usd=1.79,
+        pod_id="pod-test",
+        client_factory=_FakeClientFactory(),
+        replay_factory=lambda _c: _FakeReplay(),
+        thermal=StubThermalSource(
+            ThermalReading(gpu_temp_c=60, gpu_util_pct=70, gpu_mem_used_mb=40000)
+        ),
+    )
+    # Sidecars silently skipped: pending == all cells, no corrupt warnings.
+    assert len(matrix.pending_cell_specs()) == len(matrix.all_cell_specs())

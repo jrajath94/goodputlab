@@ -119,7 +119,11 @@ class BenchMatrix:
         cell is re-run.
         """
         existing: set[str] = set()
+        # Sidecar artifacts the runner itself writes next to cell JSONs.
+        sidecars = {"summary.json", "preflight.json"}
         for path in self._cells_dir.glob("*.json"):
+            if path.name in sidecars:
+                continue
             try:
                 result = CellResult.model_validate_json(path.read_text())
             except Exception:  # noqa: BLE001 — corrupt, treat as pending
