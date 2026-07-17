@@ -1,0 +1,57 @@
+{
+  "campaign": {
+    "n_cells_completed": 54,
+    "n_cells_failed": 0,
+    "total_duration_s": 763.8237734981813,
+    "cost_usd": 0.6372312119333333,
+    "pod_id": "w31vnqip2u7w4c",
+    "started_at": "2026-07-16T15:29:46.479421Z",
+    "ended_at": "2026-07-16T15:42:33.714325Z"
+  },
+  "summary": {
+    "n_cells": 54,
+    "n_cells_reconciled": 44,
+    "n_unreconciled": 10,
+    "n_thermal_warnings": 0,
+    "all_reconciled": false,
+    "mean_ttft_ms": 903.0460965154026,
+    "mean_itl_ms": 8.545560897727757
+  },
+  "per_topology": {
+    "chunked": {
+      "n_cells": 18,
+      "n_reconciled": 13,
+      "mean_ttft_ms": 837.6617318794634,
+      "mean_itl_ms": 8.262696087675208,
+      "success_rate": 1.0,
+      "n_unreconciled": 5,
+      "n_thermal_warnings": 0,
+      "total_cost_usd": 0.20883425950137788
+    },
+    "colocated": {
+      "n_cells": 18,
+      "n_reconciled": 16,
+      "mean_ttft_ms": 953.7957355953287,
+      "mean_itl_ms": 8.678672309300197,
+      "success_rate": 1.0,
+      "n_unreconciled": 2,
+      "n_thermal_warnings": 0,
+      "total_cost_usd": 0.21976368778956207
+    },
+    "disagg": {
+      "n_cells": 18,
+      "n_reconciled": 15,
+      "mean_ttft_ms": 905.5795975146284,
+      "mean_itl_ms": 8.648724894096032,
+      "success_rate": 1.0,
+      "n_unreconciled": 3,
+      "n_thermal_warnings": 0,
+      "total_cost_usd": 0.20580013125338287
+    }
+  },
+  "cost": {
+    "per_hour_usd": 2.99,
+    "n_cells": 54,
+    "total_usd": 0.6343980785443228
+  }
+}
