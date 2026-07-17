@@ -183,3 +183,37 @@ Median TTFT: 120.83 ms; p95 TTFT: 493.42 ms
 
 See `bench/results/runpod_full/README.md` for the honest breakdown,
 including model coverage and per-topology tables.
+## Measured numbers — Frugal ladder session (2026-07-17)
+
+1×H100 SXM secure pod (`ewzxmo3mcttjm8`), ~53 min wall, **~$2.64**.
+Every rung gated by the in-code spend gate (`--approve-cost`) and the
+prompt preflight. 8/9 cells reconciled; the one failure is kept on disk
+as a documented exhibit.
+
+| Rung | Cells | Outcome |
+|---|---|---|
+| Smoke | 1/1 | reconciled (TTFT 731 ms) |
+| Context repair (`--max-model-len 20480`) | 2/2 | RAG + agentic reconciled, zero HTTP 400 — overflow root cause closed |
+| Paired chat (real server restarts) | 4/4 | colocated vs chunked within noise at 4/16 rps |
+| Paired disagg (**true P/D**) | 2/3 | first NIXL-backed disagg cells: 30 transfers, 2.11 GB, 0 failed |
+
+Headline honest findings:
+
+- **True disagg at 4 rps: +25 % TTFT vs colocated** (919 vs 735 ms),
+  ITL parity — protocol + proxy overhead with no dedicated hardware to
+  amortize it.
+- **Single-GPU P/D collapses at 16 rps** (0.73 success, 9 s TTFT):
+  prefill and decode processes time-slice one H100. Disagg needs
+  dedicated per-stage hardware; on shared hardware it is strictly worse.
+- NIXL itself never failed (0 failed transfers, 16.9 ms mean).
+
+See `bench/results/runpod_paired_disagg/README.md` for the full
+evidence trail (before/after NIXL counters committed alongside cells).
+
+### Updated total actual spend
+
+| Item | Cost |
+|---|---|
+| Run 1 + pilot + reduced sweep + v1.1 (2026-07-09..16) | $6.06 |
+| Frugal ladder session (2026-07-17) | ~$2.64 |
+| **Total project GPU spend** | **~$8.70** |
