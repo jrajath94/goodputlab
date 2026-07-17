@@ -31,12 +31,13 @@ implementation. The current actionable GPU-blocked backlog is:
 
 | # | Gap | Severity | Effort | GPU? |
 |---|-----|----------|--------|------|
-| 1 | Full matrix completion with RAG + agentic prompt-length fix | 🟡 GPU-blocked | low code, low spend | **Yes** |
-| 2 | True disagg validation on separate prefill/decode processes with NIXL metrics | 🟡 GPU-blocked | medium | **Yes** |
-| 3 | Multi-node 2-pod cluster (`cuda_ipc` → `tcp/rdma` UCX) | 🟡 GPU-blocked | medium/high | **Yes** |
+| 1 | ~~RAG + agentic prompt-length fix~~ | ✅ Closed (2026-07-17) | — | verified: 2/2 cells reconcile at `--max-model-len 20480`, zero HTTP 400 (`bench/results/runpod_context_repair/`) |
+| 2 | ~~True disagg on separate P/D processes with NIXL metrics~~ | ✅ Closed single-GPU (2026-07-17) | — | first NIXL-backed cells: 30 transfers / 2.11 GB / 0 failed (`bench/results/runpod_paired_disagg/`); dedicated-hardware variant folds into #3 |
+| 3 | Multi-node / multi-GPU P/D (dedicated per-stage hardware, `tcp/rdma` UCX) | 🟡 GPU-blocked | medium/high | **Yes** |
 | 4 | Live autoscaler workload-shift validation | 🟡 GPU-blocked | medium | **Yes** |
 | 5 | Real LMCache gRPC wire client | 🔵 Deferred | v1.1 | Yes |
 | 6 | Trained EAGLE-3 head (DraftForge scope) | 🔵 Deferred | separate repo | Out of scope |
+| 7 | Remaining full-matrix cells (final polish, ~$8-12) | 🟡 GPU-blocked | low | **Yes** — all blockers now cleared; run only as final polish per ladder |
 
 The execution-level GPU plan lives in `docs/GPU_EXECUTION_PLAN.md`.
 

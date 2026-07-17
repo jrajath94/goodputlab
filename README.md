@@ -34,8 +34,23 @@ Honest reading:
 - The disagg-routing row is statistically indistinguishable from
   colocation, which is the expected result when there is no real
   KV transfer in the path: the router layer itself adds ~nothing.
-  Measuring the true P/D transfer cost requires two vLLM processes +
-  NIXL and is still open (`configs/runpod_paired_disagg.yaml`).
+
+**True P/D disaggregation (measured 2026-07-17).** Separate prefill +
+decode vLLM 0.11.2 processes with real NIXL KV transfer (30 transfers,
+2.11 GB, 0 failed, 16.9 ms mean), sharing one H100:
+
+| Cell (chat, qwen2.5-7b) | mean TTFT | mean ITL | reconciles |
+|---|---|---|---|
+| colocated @ 4 rps | 735 ms | 8.4 ms | yes |
+| true disagg @ 4 rps | 919 ms | 7.8 ms | yes |
+| colocated @ 16 rps | 775 ms | 7.2 ms | yes |
+| true disagg @ 16 rps | 8,979 ms | 330 ms | **no** (kept as failure exhibit) |
+
+On shared hardware, disaggregation is pure overhead at low load
+(+25 % TTFT) and collapses under load (two processes time-slice one
+GPU's SMs). The benefit regime requires dedicated per-stage hardware —
+exactly the claim the multi-GPU follow-up must test
+(`bench/results/runpod_paired_disagg/README.md`).
 - Chunked-prefill is *not* faster than colocation here, in the same
   direction the literature predicts for small models with low batch.
 

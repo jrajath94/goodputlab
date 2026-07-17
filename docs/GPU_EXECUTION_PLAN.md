@@ -27,6 +27,14 @@ Status as of 2026-07-15:
 
 ## Remaining GPU work
 
+> **Status update (2026-07-17):** §1's blocker is closed — the 2-cell
+> context-repair probe reconciled RAG + agentic at `--max-model-len
+> 20480` with zero HTTP 400s. §2 is closed for the single-GPU case —
+> `bench/results/runpod_paired_disagg/` holds the first NIXL-backed
+> true-P/D cells (30 transfers, 2.11 GB, 0 failed) plus the honest
+> 16 rps contention failure. §3 and §4 remain open; the dedicated-
+> hardware disagg run folds into §4's multi-GPU work.
+
 ### 1. Finish the matrix honestly
 
 Current failure: many `rag` and `agentic` cells overflow the served model's
