@@ -72,7 +72,12 @@ from typing import Any
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, PlainTextResponse, Response
+from fastapi.responses import (
+    JSONResponse,
+    PlainTextResponse,
+    Response,
+    StreamingResponse,
+)
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -241,13 +246,98 @@ def build_app(args: argparse.Namespace) -> FastAPI:
         )
 
     def _prefill_body(body: dict[str, Any]) -> dict[str, Any]:
-        """Clone body and cap output to 1 token for the prefill stage only."""
+        """Clone body for the prefill stage: 1 token + NIXL handshake params.
+
+        ``kv_transfer_params.do_remote_decode=True`` tells the prefill
+        engine to keep the computed KV blocks and return their handle in
+        the response; without it the decode stage silently recomputes the
+        prefill and the run is label-only (zero NIXL transfers). Protocol
+        matches vLLM v0.11.2 ``toy_proxy_server.py``.
+        """
         prefill_body = dict(body)
         # Force both legacy and OpenAI v1 field names to 1 — downstream
         # vLLM accepts either; capping both avoids silent fall-through.
         prefill_body["max_tokens"] = 1
-        prefill_body["max_completion_tokens"] = 1
+        if "max_completion_tokens" in prefill_body:
+            prefill_body["max_completion_tokens"] = 1
+        prefill_body["stream"] = False
+        prefill_body.pop("stream_options", None)
+        prefill_body["kv_transfer_params"] = {
+            "do_remote_decode": True,
+            "do_remote_prefill": False,
+            "remote_engine_id": None,
+            "remote_block_ids": None,
+            "remote_host": None,
+            "remote_port": None,
+        }
         return prefill_body
+
+    def _decode_body(
+        body: dict[str, Any], prefill_resp: httpx.Response
+    ) -> dict[str, Any]:
+        """Clone body for the decode stage, carrying the prefill KV handle."""
+        decode_body = dict(body)
+        try:
+            kv_params = prefill_resp.json().get("kv_transfer_params")
+        except ValueError:
+            kv_params = None
+        if kv_params:
+            decode_body["kv_transfer_params"] = kv_params
+        else:
+            logger.warning(
+                "prefill response carried no kv_transfer_params; decode "
+                "will recompute the prefill (label-only fallback)"
+            )
+        return decode_body
+
+    async def _run_decode(
+        request: Request,
+        path: str,
+        body: dict[str, Any],
+        prefill_resp: httpx.Response,
+        request_id: str,
+    ) -> Response:
+        """Send the decode-stage request, streaming when the client streams.
+
+        Streaming is passed through chunk-by-chunk so client-measured
+        TTFT/ITL reflect real decode pacing; buffering the SSE body would
+        collapse every inter-token gap to ~0.
+        """
+        client: httpx.AsyncClient = request.app.state.http_client
+        decode_url = request.app.state.decode_url
+        decode_body = _decode_body(body, prefill_resp)
+        headers = {"X-Request-Id": request_id}
+
+        if body.get("stream"):
+
+            async def relay() -> AsyncIterator[bytes]:
+                async with client.stream(
+                    "POST",
+                    f"{decode_url}{path}",
+                    json=decode_body,
+                    headers=headers,
+                    timeout=DEFAULT_DECODE_TIMEOUT_S,
+                ) as upstream:
+                    async for chunk in upstream.aiter_bytes():
+                        yield chunk
+
+            return StreamingResponse(
+                relay(), media_type="text/event-stream", headers=headers
+            )
+
+        decode_resp = await client.post(
+            f"{decode_url}{path}",
+            json=decode_body,
+            headers=headers,
+            timeout=DEFAULT_DECODE_TIMEOUT_S,
+        )
+        _maybe_assert_first_token(request, decode_resp.text, path)
+        return Response(
+            content=decode_resp.content,
+            status_code=decode_resp.status_code,
+            media_type=decode_resp.headers.get("content-type"),
+            headers=headers,
+        )
 
     def _maybe_assert_first_token(
         request: Request, decode_resp_text: str, path: str
@@ -308,7 +398,6 @@ def build_app(args: argparse.Namespace) -> FastAPI:
         request_id = _request_id(request)
         client: httpx.AsyncClient = request.app.state.http_client
         prefill_url = request.app.state.prefill_url
-        decode_url = request.app.state.decode_url
 
         body = await request.json()
         prefill_body = _prefill_body(body)
@@ -333,19 +422,9 @@ def build_app(args: argparse.Namespace) -> FastAPI:
                 headers={"X-Request-Id": request_id},
             )
 
-        # 2. Decode: original body (unmodified).
-        decode_resp = await client.post(
-            f"{decode_url}/v1/chat/completions",
-            json=body,
-            headers={"X-Request-Id": request_id},
-            timeout=DEFAULT_DECODE_TIMEOUT_S,
-        )
-        _maybe_assert_first_token(request, decode_resp.text, "/v1/chat/completions")
-        return Response(
-            content=decode_resp.content,
-            status_code=decode_resp.status_code,
-            media_type=decode_resp.headers.get("content-type"),
-            headers={"X-Request-Id": request_id},
+        # 2. Decode: original body + the prefill stage's KV handle.
+        return await _run_decode(
+            request, "/v1/chat/completions", body, prefill_resp, request_id
         )
 
     @app.post("/v1/completions")
@@ -353,7 +432,6 @@ def build_app(args: argparse.Namespace) -> FastAPI:
         request_id = _request_id(request)
         client: httpx.AsyncClient = request.app.state.http_client
         prefill_url = request.app.state.prefill_url
-        decode_url = request.app.state.decode_url
 
         body = await request.json()
         prefill_body = _prefill_body(body)
@@ -377,18 +455,8 @@ def build_app(args: argparse.Namespace) -> FastAPI:
                 headers={"X-Request-Id": request_id},
             )
 
-        decode_resp = await client.post(
-            f"{decode_url}/v1/completions",
-            json=body,
-            headers={"X-Request-Id": request_id},
-            timeout=DEFAULT_DECODE_TIMEOUT_S,
-        )
-        _maybe_assert_first_token(request, decode_resp.text, "/v1/completions")
-        return Response(
-            content=decode_resp.content,
-            status_code=decode_resp.status_code,
-            media_type=decode_resp.headers.get("content-type"),
-            headers={"X-Request-Id": request_id},
+        return await _run_decode(
+            request, "/v1/completions", body, prefill_resp, request_id
         )
 
     @app.get("/v1/models")
@@ -435,7 +503,6 @@ def build_app(args: argparse.Namespace) -> FastAPI:
         """Requires BOTH upstream /health endpoints to return 200."""
         client: httpx.AsyncClient = request.app.state.http_client
         prefill_url = request.app.state.prefill_url
-        decode_url = request.app.state.decode_url
 
         async def _check(url: str) -> tuple[str, int]:
             try:
@@ -462,7 +529,6 @@ def build_app(args: argparse.Namespace) -> FastAPI:
         """Concat prefill + decode Prometheus metrics with source prefixes."""
         client: httpx.AsyncClient = request.app.state.http_client
         prefill_url = request.app.state.prefill_url
-        decode_url = request.app.state.decode_url
 
         async def _fetch(url: str, label: str) -> str:
             try:

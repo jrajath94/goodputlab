@@ -162,3 +162,28 @@ def test_proxy_metrics_endpoint_labels_prefill_and_decode() -> None:
     # Both prefill and decode must be labeled in /metrics output.
     assert "prefill" in src, "proxy /metrics must include prefill source label"
     assert "decode" in src, "proxy /metrics must include decode source label"
+
+def test_proxy_prefill_requests_remote_decode_kv_handle() -> None:
+    """Prefill stage must set do_remote_decode so NIXL keeps the KV blocks.
+
+    Without kv_transfer_params the decode stage silently recomputes the
+    prefill and the topology is label-only (zero NIXL transfers) — the
+    exact failure mode the disagg-honesty invariant forbids.
+    """
+    src = PROXY_SOURCE.read_text()
+    assert '"do_remote_decode": True' in src
+    assert '"kv_transfer_params"' in src
+
+
+def test_proxy_decode_carries_prefill_kv_params() -> None:
+    """Decode body must carry the kv_transfer_params returned by prefill."""
+    src = PROXY_SOURCE.read_text()
+    assert "_decode_body" in src
+    assert 'get("kv_transfer_params")' in src
+
+
+def test_proxy_streams_decode_stage() -> None:
+    """Streaming requests must relay chunk-by-chunk (buffering kills ITL)."""
+    src = PROXY_SOURCE.read_text()
+    assert "StreamingResponse" in src
+    assert "aiter_bytes" in src
