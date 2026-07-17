@@ -1,0 +1,25 @@
+{
+  "cell_id": "chunked__qwen2.5-7b__rate-4__chat",
+  "topology": "chunked",
+  "model": "qwen2.5-7b",
+  "rate_rps": 4,
+  "mix": "chat",
+  "n_warmup": 3,
+  "n_measure": 12,
+  "seed": 6728802,
+  "mean_ttft_ms": 662.5949444,
+  "p95_ttft_ms": 953.9710535999999,
+  "mean_itl_ms": 8.175186761038962,
+  "success_rate": 1.0,
+  "cache_hit_rate": 0.0,
+  "reconcile_passes": true,
+  "thermal": {
+    "gpu_temp_c": 0,
+    "gpu_util_pct": 0,
+    "gpu_mem_used_mb": 0,
+    "THERMAL_WARN_C": 80
+  },
+  "started_at": "2026-07-17T16:04:39.082393Z",
+  "duration_s": 6.058402666999882,
+  "notes": []
+}

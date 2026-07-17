@@ -1,0 +1,42 @@
+{
+  "cost": {
+    "n_total_cells": 1,
+    "n_pending_cells": 1,
+    "n_skipped_cells": 0,
+    "topologies": [
+      "colocated"
+    ],
+    "models": [
+      "qwen2.5-7b"
+    ],
+    "rates_rps": [
+      4
+    ],
+    "mixes": [
+      "chat"
+    ],
+    "n_warmup": 2,
+    "n_measure": 8,
+    "est_wall_minutes": 0.8,
+    "cost_per_hour_usd": 1.99,
+    "est_cost_usd": 0.03,
+    "output_dir": "bench/results/runpod_smoke",
+    "smoke": true
+  },
+  "prompt": {
+    "max_model_len": 8192,
+    "per_mix": [
+      {
+        "mix": "chat",
+        "n_requests": 10,
+        "min_prompt_tokens": 645,
+        "mean_prompt_tokens": 1281.4,
+        "p95_prompt_tokens": 1962,
+        "max_prompt_tokens": 1962,
+        "max_prompt_plus_output_tokens": 2390
+      }
+    ],
+    "overflow_mixes": [],
+    "ok": true
+  }
+}

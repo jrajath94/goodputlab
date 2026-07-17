@@ -1,0 +1,25 @@
+{
+  "cell_id": "colocated__qwen2.5-7b__rate-4__rag",
+  "topology": "colocated",
+  "model": "qwen2.5-7b",
+  "rate_rps": 4,
+  "mix": "rag",
+  "n_warmup": 2,
+  "n_measure": 8,
+  "seed": 4052498204,
+  "mean_ttft_ms": 1472.1200834,
+  "p95_ttft_ms": 2125.9673248499994,
+  "mean_itl_ms": 8.31291740058694,
+  "success_rate": 1.0,
+  "cache_hit_rate": 0.0,
+  "reconcile_passes": true,
+  "thermal": {
+    "gpu_temp_c": 0,
+    "gpu_util_pct": 0,
+    "gpu_mem_used_mb": 0,
+    "THERMAL_WARN_C": 80
+  },
+  "started_at": "2026-07-17T16:04:02.152678Z",
+  "duration_s": 4.9271970409999994,
+  "notes": []
+}

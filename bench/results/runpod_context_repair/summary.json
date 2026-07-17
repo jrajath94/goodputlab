@@ -1,0 +1,37 @@
+{
+  "campaign": {
+    "n_cells_completed": 2,
+    "n_cells_failed": 0,
+    "total_duration_s": 9.343908041000304,
+    "cost_usd": 0.005197670497222222,
+    "pod_id": "runpod-context-repair",
+    "started_at": "2026-07-17T16:04:02.128190Z",
+    "ended_at": "2026-07-17T16:04:11.531011Z"
+  },
+  "summary": {
+    "n_cells": 2,
+    "n_cells_reconciled": 2,
+    "n_unreconciled": 0,
+    "n_thermal_warnings": 0,
+    "all_reconciled": true,
+    "mean_ttft_ms": 992.6104750000001,
+    "mean_itl_ms": 7.677271784377554
+  },
+  "per_topology": {
+    "colocated": {
+      "n_cells": 2,
+      "n_reconciled": 2,
+      "mean_ttft_ms": 992.6104750000001,
+      "mean_itl_ms": 7.677271784377554,
+      "success_rate": 1.0,
+      "n_unreconciled": 0,
+      "n_thermal_warnings": 0,
+      "total_cost_usd": 0.005165104722664057
+    }
+  },
+  "cost": {
+    "per_hour_usd": 1.99,
+    "n_cells": 2,
+    "total_usd": 0.005165104722664057
+  }
+}

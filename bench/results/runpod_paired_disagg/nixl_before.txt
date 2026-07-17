@@ -1,0 +1,2 @@
+vllm:nixl_xfer_time_seconds_count{engine="0",model_name="goodputlab-model"} 1.0
+vllm:nixl_bytes_transferred_sum{engine="0",model_name="goodputlab-model"} 1.835008e+06

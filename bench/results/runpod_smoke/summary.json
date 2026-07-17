@@ -1,0 +1,37 @@
+{
+  "campaign": {
+    "n_cells_completed": 1,
+    "n_cells_failed": 0,
+    "total_duration_s": 5.3140395840000565,
+    "cost_usd": 0.002975269452777778,
+    "pod_id": "runpod-smoke",
+    "started_at": "2026-07-17T16:03:28.541654Z",
+    "ended_at": "2026-07-17T16:03:33.924051Z"
+  },
+  "summary": {
+    "n_cells": 1,
+    "n_cells_reconciled": 1,
+    "n_unreconciled": 0,
+    "n_thermal_warnings": 0,
+    "all_reconciled": true,
+    "mean_ttft_ms": 730.6372959,
+    "mean_itl_ms": 7.927146125134264
+  },
+  "per_topology": {
+    "colocated": {
+      "n_cells": 1,
+      "n_reconciled": 1,
+      "mean_ttft_ms": 730.6372959,
+      "mean_itl_ms": 7.927146125134264,
+      "success_rate": 1.0,
+      "n_unreconciled": 0,
+      "n_thermal_warnings": 0,
+      "total_cost_usd": 0.0029374829922666976
+    }
+  },
+  "cost": {
+    "per_hour_usd": 1.99,
+    "n_cells": 1,
+    "total_usd": 0.0029374829922666976
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "cost": {
+    "n_total_cells": 2,
+    "n_pending_cells": 2,
+    "n_skipped_cells": 0,
+    "topologies": [
+      "colocated"
+    ],
+    "models": [
+      "qwen2.5-7b"
+    ],
+    "rates_rps": [
+      4
+    ],
+    "mixes": [
+      "rag",
+      "agentic"
+    ],
+    "n_warmup": 2,
+    "n_measure": 8,
+    "est_wall_minutes": 1.6,
+    "cost_per_hour_usd": 1.99,
+    "est_cost_usd": 0.05,
+    "output_dir": "bench/results/runpod_context_repair",
+    "smoke": false
+  },
+  "prompt": {
+    "max_model_len": 20480,
+    "per_mix": [
+      {
+        "mix": "rag",
+        "n_requests": 10,
+        "min_prompt_tokens": 18223,
+        "mean_prompt_tokens": 18296.8,
+        "p95_prompt_tokens": 18355,
+        "max_prompt_tokens": 18355,
+        "max_prompt_plus_output_tokens": 18533
+      },
+      {
+        "mix": "agentic",
+        "n_requests": 10,
+        "min_prompt_tokens": 133,
+        "mean_prompt_tokens": 1201.7,
+        "p95_prompt_tokens": 2531,
+        "max_prompt_tokens": 2531,
+        "max_prompt_plus_output_tokens": 3310
+      }
+    ],
+    "overflow_mixes": [],
+    "ok": true
+  }
+}
