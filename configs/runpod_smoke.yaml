@@ -1,0 +1,24 @@
+# Rung 2 — single-cell vLLM health probe (docs/GPU_COST_OPTIMIZATION.md).
+#
+# cell count:      1 (colocated × qwen2.5-7b × 4 rps × chat)
+# expected wall:   ~3 min after model load (setup ~12 min dominates)
+# expected cost:   ~$0.50-$0.80 on H100 PCIe community (~$1.99/hr)
+# promotion gate:  cell reconciles + telemetry has prompt/output tokens
+#                  -> promote to configs/runpod_paired_chat.yaml
+# true disagg:     not required (colocated only)
+#
+# smoke: true exempts this config from the --approve-cost gate — it is
+# the one run allowed to spend without explicit approval (<$1).
+
+topologies: [colocated]
+models: [qwen2.5-7b]
+rates_rps: [4]
+mixes: [chat]
+n_warmup: 2
+n_measure: 8
+cost_per_hour_usd: 1.99
+smoke: true
+max_model_len: 8192
+output_dir: bench/results/runpod_smoke
+pod_id: runpod-smoke
+vllm_base_url_env: RUNPOD_VLLM_BASE_URL

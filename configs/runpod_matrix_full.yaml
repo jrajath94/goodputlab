@@ -1,5 +1,13 @@
 # GoodputLab RunPod matrix config — FULL 216-cell sweep.
 #
+# *** FINAL POLISH ONLY — NEVER A DEBUGGING RUN. ***
+# Prerequisites (docs/GPU_COST_OPTIMIZATION.md Rung 6): runpod_smoke
+# reconciled, runpod_paired_chat reconciled, runpod_context_repair clean
+# (no HTTP 400), and disagg topologies backed by true separate P/D
+# processes — otherwise drop disagg/disagg_tier from `topologies` below.
+# Budget: ~$8-12 expected, hard safety cap $20.
+# Requires --approve-cost or APPROVE_GPU_SPEND=yes.
+#
 # Sweep size: 4 topologies (colocated, chunked, disagg, disagg_tier)
 #             x 3 models (qwen3-1.7b, qwen2.5-7b, qwen3-30b)
 #             x 6 rates (1, 2, 4, 8, 16, 32 rps)
@@ -47,6 +55,10 @@ n_measure: 30
 # --- cost model ---
 # H100 SXM secure (RunPod) — update if renting a different class.
 cost_per_hour_usd: 2.99
+smoke: false
+# RAG worst prompt+output measured at 18,539 tokens (bench/preflight.py);
+# launch vLLM with --max-model-len 20480 to match.
+max_model_len: 20480
 
 # --- output ---
 output_dir: bench/results/runpod_full

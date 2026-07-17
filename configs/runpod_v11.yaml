@@ -4,11 +4,22 @@
 # (qwen2.5-7b) x 6 rates (1, 2, 4, 8, 16, 32 rps) x 3 mixes
 # (chat, agentic, rag) = 54 cells.
 #
-# Frugal scope: single model on a single H100 SXM 80GB pod; RAG
-# included now that max-model-len=16384. DISAGG runs use separate
-# prefill+decode vLLM processes on the same pod with NIXL UCX.
+# HONEST STATUS (2026-07-16): the executed v1.1 run served ALL cells —
+# including the 18 labelled `disagg` — from one single vLLM process.
+# Those rows are label-only routing data, NOT true P/D disaggregation,
+# and must not enter topology-comparison claims (see
+# bench/results/runpod_v11/README.md and docs/GAP_REPORT.md Gap 7).
+# True disagg requires separate prefill+decode processes; probe it with
+# configs/runpod_paired_disagg.yaml first.
 #
-# Run:    python -m scripts.run_matrix --config configs/runpod_v11.yaml
+# KNOWN LIMIT: this run used --max-model-len=16384, which the prompt
+# preflight has since shown cannot fit RAG (worst prompt+output =
+# 18,539 tokens) — hence the 10 unreconciled RAG cells. max_model_len
+# below is set to 20480 so any RERUN preflights correctly; launch vLLM
+# with --max-model-len 20480 and verify memory headroom first.
+#
+# Run (resume-safe, requires approval):
+#   python -m scripts.run_matrix --config configs/runpod_v11.yaml --approve-cost
 # Output: bench/results/runpod_v11/<cell_id>.json + summary.json
 
 # --- sweep subset ---
@@ -24,6 +35,8 @@ n_measure: 30
 # --- cost model ---
 # H100 SXM secure (RunPod) at the 2026-07-14 measured rate.
 cost_per_hour_usd: 2.99
+smoke: false
+max_model_len: 20480
 
 # --- output ---
 output_dir: bench/results/runpod_v11

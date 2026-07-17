@@ -1,0 +1,28 @@
+# Rung 3b — paired disagg probe (docs/GPU_COST_OPTIMIZATION.md).
+#
+# cell count:      2 (colocated,disagg × qwen2.5-7b × 16 rps × chat)
+# expected wall:   ~10 min after model load
+# expected cost:   ~$1 on H100 PCIe community (~$1.99/hr)
+# promotion gate:  both cells reconcile AND disagg row has true P/D
+#                  transfer metrics (separate prefill/decode processes)
+# true disagg:     REQUIRED. Do NOT run this config unless the pod is
+#                  actually launched with separate P/D vLLM processes
+#                  (see deploy/ disagg compose + scripts/disagg_proxy.py).
+#                  A colocated server labeled "disagg" is label-only data
+#                  and must never enter a topology-comparison table.
+# prerequisite:    configs/runpod_paired_chat.yaml reconciled
+#
+# Requires --approve-cost or APPROVE_GPU_SPEND=yes.
+
+topologies: [colocated, disagg]
+models: [qwen2.5-7b]
+rates_rps: [16]
+mixes: [chat]
+n_warmup: 3
+n_measure: 12
+cost_per_hour_usd: 1.99
+smoke: false
+max_model_len: 8192
+output_dir: bench/results/runpod_paired_disagg
+pod_id: runpod-paired-disagg
+vllm_base_url_env: RUNPOD_VLLM_BASE_URL

@@ -1,0 +1,26 @@
+# Rung 3 — paired topology probe, chat (docs/GPU_COST_OPTIMIZATION.md).
+#
+# cell count:      4 (colocated,chunked × qwen2.5-7b × 4,16 rps × chat)
+# expected wall:   ~18 min after model load
+# expected cost:   ~$1-$2 on H100 PCIe community (~$1.99/hr)
+# promotion gate:  all 4 cells reconcile + paired deltas interpretable
+#                  -> promote to disagg pair / focused sweep
+# true disagg:     not required (no disagg cells here)
+# prerequisite:    configs/runpod_smoke.yaml reconciled
+#
+# Paired design: same model, same seeds (derived per cell), same rates —
+# topology is the only variable, so deltas are claimable with few samples.
+# Requires --approve-cost or APPROVE_GPU_SPEND=yes.
+
+topologies: [colocated, chunked]
+models: [qwen2.5-7b]
+rates_rps: [4, 16]
+mixes: [chat]
+n_warmup: 3
+n_measure: 12
+cost_per_hour_usd: 1.99
+smoke: false
+max_model_len: 8192
+output_dir: bench/results/runpod_paired_chat
+pod_id: runpod-paired-chat
+vllm_base_url_env: RUNPOD_VLLM_BASE_URL

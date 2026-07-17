@@ -5,7 +5,10 @@
 #
 # Purpose: validate the full bench pipeline (trace -> vLLM -> metrics ->
 # CellResult JSON -> aggregator) end-to-end on real GPU before committing
-# to the full 216-cell campaign (~$600-1200 GPU spend).
+# to the full 216-cell campaign (~$8-12 sequential, hard cap $20 — see
+# docs/GPU_COST_OPTIMIZATION.md; the old 4-8xH100 $600-1200 tier is retired).
+# Superseded for new work by configs/runpod_smoke.yaml (1 cell, gate-exempt);
+# kept because bench/results/runpod_pilot/ was measured with this config.
 #
 # Estimated cost on H100 SXM spot @ $1.79/hr: ~$0.10 (2 cells x ~30s +
 # model load overhead of ~2 min).

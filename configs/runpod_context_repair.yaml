@@ -1,0 +1,38 @@
+# Rung 4 — RAG/agentic context-repair probe (docs/GPU_COST_OPTIMIZATION.md).
+#
+# cell count:      2 (colocated × qwen2.5-7b × 4 rps × rag,agentic)
+# expected wall:   ~8 min after model load
+# expected cost:   <$1 on H100 PCIe community (~$1.99/hr)
+# promotion gate:  both cells avoid HTTP 400/context errors AND reconcile
+#                  -> RAG/agentic mixes become eligible for focused sweep
+# true disagg:     not required (colocated only)
+# prerequisite:    configs/runpod_paired_chat.yaml reconciled
+#
+# Purpose: the 72-cell reduced sweep burned money on RAG/agentic prompt
+# overflow (HTTP 400s). The prompt preflight in scripts/run_matrix.py now
+# predicts overflow against max_model_len BEFORE spend; this config exists
+# to verify the fix on GPU with exactly 2 cheap cells.
+#
+# max_model_len must match the vLLM launch flag. Before raising it, check
+# memory headroom on the pod:
+#   nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv
+#
+# Measured by the local prompt preflight (2026-07-16): RAG worst
+# prompt+output = 18,539 tokens — this is why 16384 produced HTTP 400s in
+# the reduced sweep. 20480 is the smallest comfortable power-of-2-ish
+# budget above it. Launch vLLM with --max-model-len 20480.
+#
+# Requires --approve-cost or APPROVE_GPU_SPEND=yes.
+
+topologies: [colocated]
+models: [qwen2.5-7b]
+rates_rps: [4]
+mixes: [rag, agentic]
+n_warmup: 2
+n_measure: 8
+cost_per_hour_usd: 1.99
+smoke: false
+max_model_len: 20480
+output_dir: bench/results/runpod_context_repair
+pod_id: runpod-context-repair
+vllm_base_url_env: RUNPOD_VLLM_BASE_URL
