@@ -141,7 +141,7 @@ _REPO_ROOT = Path(__file__).parent.parent
     ("name", "expected_cells"),
     [
         ("runpod_matrix.yaml", 2),
-        ("runpod_matrix_full.yaml", 72),
+        ("runpod_matrix_full.yaml", 54),
         ("runpod_v11.yaml", 54),
         ("runpod_smoke.yaml", 1),
         ("runpod_paired_chat.yaml", 4),

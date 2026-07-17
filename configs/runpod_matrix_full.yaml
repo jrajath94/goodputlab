@@ -8,10 +8,10 @@
 # Budget: ~$8-12 expected, hard safety cap $20.
 # Requires --approve-cost or APPROVE_GPU_SPEND=yes.
 #
-# Sweep size AS CONFIGURED BELOW: 4 topologies x 1 model (qwen2.5-7b)
+# Sweep size AS CONFIGURED BELOW: 3 topologies x 1 model (qwen2.5-7b)
 #             x 6 rates (1, 2, 4, 8, 16, 32 rps)
 #             x 3 mixes (chat, rag, agentic)
-#           = 72 cells
+#           = 54 cells (disagg_tier excluded until real LMCache wire)
 # (The nominal 216-cell matrix adds qwen3-1.7b + qwen3-30b; multi-model
 # needs one vLLM process per model — planned v1.1.)
 #
@@ -34,17 +34,22 @@
 #   - TOTAL realistic: ~$6 single-pod
 #
 # Run:    python -m scripts.run_matrix --config configs/runpod_matrix_full.yaml
-# Output: bench/results/runpod_full/<cell_id>.json + summary.json
+# Output: bench/results/runpod_v12/<cell_id>.json + summary.json
 
 # --- sweep subset ---
-# Cost-controlled first run: single model (qwen2.5-7b), 4 topologies, 6
-# rates, 3 mixes = 72 cells. vLLM serves one model per process; multi-model
-# sweep needs separate vLLM instances (planned v1.1).
+# Single model (qwen2.5-7b): vLLM serves one model per process;
+# multi-model sweep needs separate vLLM instances (planned v1.1).
 #
-# Topology caveat: colocated/chunked use vLLM defaults. DISAGG/DISAGG_TIER
-# use the SAME single vLLM instance in this run (label-only); true DISAGG
-# needs separate prefill + decode + NIXL UCX setup (planned v1.1).
-topologies: [colocated, chunked, disagg, disagg_tier]
+# Topology honesty (2026-07-17): each label must map to a genuinely
+# different serving config, executed as separate passes with the
+# runner's --topologies filter:
+#   colocated : single vLLM, --no-enable-chunked-prefill
+#   chunked   : single vLLM, --enable-chunked-prefill (server restart)
+#   disagg    : separate prefill+decode vLLM processes (dedicated GPU
+#               each) + NIXL + scripts/disagg_proxy.py
+#   disagg_tier: EXCLUDED until the real LMCache gRPC wire lands (v1.1
+#               deferred) — a tier label without a tier is label-only.
+topologies: [colocated, chunked, disagg]
 models: [qwen2.5-7b]
 rates_rps: [1, 2, 4, 8, 16, 32]
 mixes: [chat, rag, agentic]
@@ -62,8 +67,10 @@ smoke: false
 max_model_len: 20480
 
 # --- output ---
-output_dir: bench/results/runpod_full
-pod_id: local-full  # set to actual RunPod pod id on real runs
+# runpod_full/ holds the historical 2026-07-14 4096-context sweep;
+# v1.2 writes to a fresh dir so that evidence is never overwritten.
+output_dir: bench/results/runpod_v12
+pod_id: runpod-v12  # set to actual RunPod pod id on real runs
 
 # --- vLLM endpoint (set via env on real pod) ---
 vllm_base_url_env: RUNPOD_VLLM_BASE_URL
