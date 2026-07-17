@@ -44,4 +44,12 @@ fix belongs in `loadgen/client.py`; tracked in the issues list. Until
 fixed, treat Ollama results as a smoke test for the HTTP plumbing,
 not as TTFT/ITL evidence.
 
+**Re-measured 2026-07-16** (`--model qwen3:8b --n 8`): the smoke run
+captured non-zero telemetry (success 100 %, mean TTFT 1145.6 ms, mean
+ITL 22.9 ms, `qwen3_8b.json`), so the parser returned per-token
+timestamps on this run. The hole above is therefore intermittent
+(prompt-length/reasoning-token dependent), not permanent. The policy is
+unchanged either way: Ollama numbers validate request shape, streaming
+parse, and result plumbing only — they are never vLLM or P/D evidence.
+
 Run 1 on vLLM (commit `c57ee66`) is the canonical TTFT/ITL evidence.
