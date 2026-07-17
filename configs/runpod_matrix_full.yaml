@@ -8,11 +8,12 @@
 # Budget: ~$8-12 expected, hard safety cap $20.
 # Requires --approve-cost or APPROVE_GPU_SPEND=yes.
 #
-# Sweep size: 4 topologies (colocated, chunked, disagg, disagg_tier)
-#             x 3 models (qwen3-1.7b, qwen2.5-7b, qwen3-30b)
+# Sweep size AS CONFIGURED BELOW: 4 topologies x 1 model (qwen2.5-7b)
 #             x 6 rates (1, 2, 4, 8, 16, 32 rps)
 #             x 3 mixes (chat, rag, agentic)
-#           = 216 cells
+#           = 72 cells
+# (The nominal 216-cell matrix adds qwen3-1.7b + qwen3-30b; multi-model
+# needs one vLLM process per model — planned v1.1.)
 #
 # Topology notes:
 #   - colocated  : vLLM default single-pool. Always runnable.
