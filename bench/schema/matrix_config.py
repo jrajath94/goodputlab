@@ -61,6 +61,26 @@ class MatrixSweepConfig(BaseModel):
             raise ValueError(f"rates_rps must be positive, got {v}")
         return v
 
+    def restrict_topologies(self, names: list[str]) -> MatrixSweepConfig:
+        """Return a copy restricted to ``names`` (for split-server runs).
+
+        A paired config like ``runpod_paired_disagg.yaml`` lists both a
+        colocated and a disagg cell, but each must hit a *different*
+        server (single vLLM vs P/D proxy). The runner exposes this as
+        ``--topologies`` so one config can be executed in two passes
+        without ever serving a disagg-labeled cell from a colocated
+        endpoint.
+        """
+        wanted = [Topology(n) for n in names]
+        allowed = self.topologies if self.topologies is not None else list(Topology)
+        missing = [t.value for t in wanted if t not in allowed]
+        if missing:
+            raise ValueError(
+                f"topologies {missing} not in this config's sweep "
+                f"({[t.value for t in allowed]})"
+            )
+        return self.model_copy(update={"topologies": wanted})
+
     def to_matrix_spec(self) -> MatrixSpec:
         """Translate to a runnable :class:`MatrixSpec`."""
         return MatrixSpec(

@@ -174,3 +174,25 @@ def test_no_unregistered_runpod_configs() -> None:
         f"unregistered configs: {sorted(on_disk - registered)}; "
         f"missing configs: {sorted(registered - on_disk)}"
     )
+
+def test_restrict_topologies_narrows_sweep() -> None:
+    """--topologies filter: paired config narrows to one topology."""
+    cfg = load_matrix_config(_REPO_ROOT / "configs" / "runpod_paired_disagg.yaml")
+    narrowed = cfg.restrict_topologies(["disagg"])
+    spec = narrowed.to_matrix_spec()
+    assert spec.total_cells() == 1
+    assert [t.value for t in spec.topologies] == ["disagg"]
+    # Original config untouched (model_copy semantics).
+    assert cfg.to_matrix_spec().total_cells() == 2
+
+
+def test_restrict_topologies_rejects_names_outside_sweep() -> None:
+    cfg = load_matrix_config(_REPO_ROOT / "configs" / "runpod_paired_disagg.yaml")
+    with pytest.raises(ValueError, match="disagg_tier"):
+        cfg.restrict_topologies(["disagg_tier"])
+
+
+def test_restrict_topologies_rejects_unknown_name() -> None:
+    cfg = load_matrix_config(_REPO_ROOT / "configs" / "runpod_paired_disagg.yaml")
+    with pytest.raises(ValueError):
+        cfg.restrict_topologies(["not-a-topology"])

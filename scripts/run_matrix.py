@@ -134,9 +134,27 @@ def main(argv: list[str] | None = None) -> int:
             "overflow vs max_model_len (default: abort before spend)"
         ),
     )
+    parser.add_argument(
+        "--topologies",
+        default=None,
+        help=(
+            "Comma-separated subset of the config's topologies to run "
+            "(e.g. 'disagg'). Split-server runs use this so a paired "
+            "config never serves a disagg-labeled cell from a colocated "
+            "endpoint."
+        ),
+    )
     args = parser.parse_args(argv)
 
     cfg = load_matrix_config(args.config)
+    if args.topologies:
+        names = [t.strip() for t in args.topologies.split(",") if t.strip()]
+        try:
+            cfg = cfg.restrict_topologies(names)
+        except ValueError as exc:
+            print(f"[run_matrix] ERROR: {exc}", file=sys.stderr)
+            return 2
+        print(f"[run_matrix] topology filter active: {names}", flush=True)
     matrix_spec = cfg.to_matrix_spec()
     total_cells = matrix_spec.total_cells()
     print(f"[run_matrix] sweep size: {total_cells} cells", flush=True)
