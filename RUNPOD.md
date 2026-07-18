@@ -217,3 +217,29 @@ evidence trail (before/after NIXL counters committed alongside cells).
 | Run 1 + pilot + reduced sweep + v1.1 (2026-07-09..16) | $6.06 |
 | Frugal ladder session (2026-07-17) | ~$2.64 |
 | **Total project GPU spend** | **~$8.70** |
+
+## Measured numbers — v1.2 dedicated-hardware sweep (2026-07-17)
+
+2× H100 SXM secure pod (`u1n8efij0owar2`, $5.98/hr), three passes with
+real server swaps. **54/54 cells reconciled** — first sweep with zero
+label-only rows. Full tables + NIXL counters:
+`bench/results/runpod_v12/README.md`. Autoscaler live run (partial —
+drain invariant + no-thrash validated, scale-up path not live-tested):
+`bench/results/autoscaler_live/README.md`.
+
+| Topology | Mean TTFT | Mean ITL |
+|---|---|---|
+| colocated | 900 ms | 8.8 ms |
+| chunked | 974 ms | 8.7 ms |
+| disagg (true, GPU0+GPU1, NIXL) | 1,034 ms | 8.3 ms |
+
+### Updated total actual spend
+
+| Item | Cost |
+|---|---|
+| Through frugal ladder (2026-07-17 AM) | ~$8.70 |
+| v1.2 session (2×H100, ~1.6 h wall incl. debugging) | ~$9.60 |
+| **Total project GPU spend** | **~$18.30** |
+
+Pod stopped externally at 03:21 UTC and deleted; zero pods left
+billing for this project.

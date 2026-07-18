@@ -48,9 +48,26 @@ decode vLLM 0.11.2 processes with real NIXL KV transfer (30 transfers,
 
 On shared hardware, disaggregation is pure overhead at low load
 (+25 % TTFT) and collapses under load (two processes time-slice one
-GPU's SMs). The benefit regime requires dedicated per-stage hardware —
-exactly the claim the multi-GPU follow-up must test
+GPU's SMs). The benefit regime requires dedicated per-stage hardware
 (`bench/results/runpod_paired_disagg/README.md`).
+
+**v1.2: dedicated hardware (measured 2026-07-17).** 54/54 cells
+reconciled — 3 topologies × 6 rates × 3 mixes, prefill on GPU0 +
+decode on GPU1 for the disagg pass (617 NIXL transfers, 30.9 GB, 0
+failed):
+
+| Topology (real config per pass) | Cells | Mean TTFT | Mean ITL |
+|---|---|---|---|
+| colocated | 18/18 | 900 ms | 8.8 ms |
+| chunked-prefill | 18/18 | 974 ms | 8.7 ms |
+| disagg (true, 2 GPU) | 18/18 | 1,034 ms | **8.3 ms** |
+
+Dedicated hardware fixes the collapse (1.00 success through 32 rps) and
+shows disagg's interference-isolation benefit in ITL — but disagg still
+pays +134 ms mean TTFT and 2× the hardware at every measured load. A
+single H100 serving 7B is not saturated enough for stage separation to
+win; that boundary is the study's central result
+(`bench/results/runpod_v12/README.md`).
 - Chunked-prefill is *not* faster than colocation here, in the same
   direction the literature predicts for small models with low batch.
 
