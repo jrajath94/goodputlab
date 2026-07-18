@@ -1,0 +1,12 @@
+{
+  "ticks": 43,
+  "flips": 0,
+  "flips_per_minute": 0.0,
+  "drain_violations": 0,
+  "max_queue_waiting": 0,
+  "phases": [
+    "prompt_heavy",
+    "decode_heavy"
+  ],
+  "records_path": "bench/results/autoscaler_live/run.jsonl"
+}

@@ -1,0 +1,25 @@
+{
+  "cell_id": "disagg__qwen2.5-7b__rate-32__rag",
+  "topology": "disagg",
+  "model": "qwen2.5-7b",
+  "rate_rps": 32,
+  "mix": "rag",
+  "n_warmup": 5,
+  "n_measure": 30,
+  "seed": 4284439168,
+  "mean_ttft_ms": 1442.0594190857144,
+  "p95_ttft_ms": 2110.8888712,
+  "mean_itl_ms": 10.8109517960199,
+  "success_rate": 1.0,
+  "cache_hit_rate": 0.0,
+  "reconcile_passes": true,
+  "thermal": {
+    "gpu_temp_c": 0,
+    "gpu_util_pct": 0,
+    "gpu_mem_used_mb": 0,
+    "THERMAL_WARN_C": 80
+  },
+  "started_at": "2026-07-17T22:06:49.975692Z",
+  "duration_s": 4.141414249999798,
+  "notes": []
+}

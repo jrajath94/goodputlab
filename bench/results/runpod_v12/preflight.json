@@ -1,0 +1,67 @@
+{
+  "cost": {
+    "n_total_cells": 18,
+    "n_pending_cells": 18,
+    "n_skipped_cells": 0,
+    "topologies": [
+      "disagg"
+    ],
+    "models": [
+      "qwen2.5-7b"
+    ],
+    "rates_rps": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "mixes": [
+      "chat",
+      "rag",
+      "agentic"
+    ],
+    "n_warmup": 5,
+    "n_measure": 30,
+    "est_wall_minutes": 16.9,
+    "cost_per_hour_usd": 2.99,
+    "est_cost_usd": 0.84,
+    "output_dir": "bench/results/runpod_v12",
+    "smoke": false
+  },
+  "prompt": {
+    "max_model_len": 20480,
+    "per_mix": [
+      {
+        "mix": "chat",
+        "n_requests": 210,
+        "min_prompt_tokens": 503,
+        "mean_prompt_tokens": 1279.1,
+        "p95_prompt_tokens": 1937,
+        "max_prompt_tokens": 1998,
+        "max_prompt_plus_output_tokens": 2416
+      },
+      {
+        "mix": "rag",
+        "n_requests": 210,
+        "min_prompt_tokens": 12305,
+        "mean_prompt_tokens": 14937.0,
+        "p95_prompt_tokens": 16833,
+        "max_prompt_tokens": 16870,
+        "max_prompt_plus_output_tokens": 17054
+      },
+      {
+        "mix": "agentic",
+        "n_requests": 210,
+        "min_prompt_tokens": 160,
+        "mean_prompt_tokens": 4873.9,
+        "p95_prompt_tokens": 9023,
+        "max_prompt_tokens": 10791,
+        "max_prompt_plus_output_tokens": 11326
+      }
+    ],
+    "overflow_mixes": [],
+    "ok": true
+  }
+}

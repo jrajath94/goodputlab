@@ -33,6 +33,8 @@ bench/results/*
 !bench/results/runpod_context_repair/
 !bench/results/runpod_paired_chat/
 !bench/results/runpod_paired_disagg/
+!bench/results/runpod_v12/
+!bench/results/autoscaler_live/
 # REPRO-03: bench results may also be committed as parquet. The blanket
 # *.parquet blocklist was removed (see above) so parquet directly under
 # any of the whitelisted bench subdirs is committable.

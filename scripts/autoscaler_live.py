@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import contextlib
 import json
 import os
 import sys
@@ -78,9 +77,11 @@ class Phase:
 
 
 DEFAULT_PHASES = [
-    # Prompt-heavy: ~4K-token prompts, 8-token outputs. Queue builds at
-    # the prefill stage.
-    Phase("prompt_heavy", 60.0, 8.0, 3000, 8),
+    # Prompt-heavy: ~8K-token prompts at 24 rps ≈ 190K prefill tok/s —
+    # deliberately above one H100's 7B prefill throughput so the waiting
+    # queue actually builds (8 rps × 4K tokens never queued: measured
+    # max_queue_waiting = 0 on 2026-07-17).
+    Phase("prompt_heavy", 60.0, 24.0, 6000, 8),
     # Decode-heavy: tiny prompts, long outputs. Queue drains, running
     # stays occupied by decode.
     Phase("decode_heavy", 60.0, 4.0, 40, 512),
@@ -124,18 +125,30 @@ def tick_record(
 
 
 async def _fire_phase(
-    client: httpx.AsyncClient, base_url: str, phase: Phase, stop: asyncio.Event
+    client: httpx.AsyncClient,
+    base_url: str,
+    phase: Phase,
+    stop: asyncio.Event,
+    status_counts: dict[str, int],
 ) -> int:
     """Fire phase traffic open-loop at ``rate_rps``; return request count."""
-    prompt = "lorem " * phase.prompt_words
+    base_prompt = "lorem " * phase.prompt_words
     interval = 1.0 / phase.rate_rps
     n = 0
     deadline = time.monotonic() + phase.duration_s
 
-    async def one() -> None:
-        # Queue-signal experiment; individual request failures are fine.
-        with contextlib.suppress(httpx.HTTPError):
-            await client.post(
+    async def one(seq: int) -> None:
+        # Unique prefix per request: with a shared prompt, vLLM's
+        # automatic prefix caching absorbs the entire prefill and the
+        # queue never builds (measured max_queue_waiting = 0 at 24 rps
+        # x 8K tokens on 2026-07-17). The distinct first tokens defeat
+        # the cache so every request pays real prefill.
+        prompt = f"request {seq} distinct: {base_prompt}"
+        # Queue-signal experiment; individual failures are tolerated but
+        # COUNTED — a silent 4xx/5xx flood previously masqueraded as
+        # "the server absorbed the load" (max_queue_waiting 0).
+        try:
+            resp = await client.post(
                 f"{base_url}/chat/completions",
                 json={
                     "model": "goodputlab-model",
@@ -145,10 +158,14 @@ async def _fire_phase(
                 },
                 timeout=180.0,
             )
+            key = str(resp.status_code)
+        except httpx.HTTPError as exc:
+            key = type(exc).__name__
+        status_counts[key] = status_counts.get(key, 0) + 1
 
     tasks: list[asyncio.Task[None]] = []
     while time.monotonic() < deadline and not stop.is_set():
-        tasks.append(asyncio.create_task(one()))
+        tasks.append(asyncio.create_task(one(n)))
         n += 1
         await asyncio.sleep(interval)
     await asyncio.gather(*tasks, return_exceptions=True)
@@ -168,6 +185,7 @@ async def run_experiment(
     metrics_url = base_url.removesuffix("/v1") + "/metrics"
     replicas = 1
     records: list[dict[str, Any]] = []
+    status_counts: dict[str, int] = {}
     drain_violations = 0
     flips = 0
 
@@ -176,9 +194,13 @@ async def run_experiment(
         for phase in phases:
             stop = asyncio.Event()
             traffic = asyncio.create_task(
-                _fire_phase(client, base_url, phase, stop)
+                _fire_phase(client, base_url, phase, stop, status_counts)
             )
-            phase_deadline = time.monotonic() + phase.duration_s
+            # End ticking slightly before the traffic deadline so the
+            # final in-flight requests drain inside the client context —
+            # a tick that outlives the phase can otherwise observe the
+            # client after closure ("client has been closed").
+            phase_deadline = time.monotonic() + phase.duration_s - tick_s
             while time.monotonic() < phase_deadline:
                 body = (await client.get(metrics_url, timeout=10.0)).text
                 waiting, running = queue_signal(body)
@@ -213,6 +235,7 @@ async def run_experiment(
             stop.set()
             await traffic
 
+    # Records are the experiment; write them even if a late tick raised.
     with out_path.open("w") as fh:
         for rec in records:
             fh.write(json.dumps(rec) + "\n")
@@ -224,6 +247,7 @@ async def run_experiment(
         "flips_per_minute": round(flips / (wall_s / 60.0), 3) if wall_s else 0.0,
         "drain_violations": drain_violations,
         "max_queue_waiting": max((r["queue_waiting"] for r in records), default=0),
+        "response_status_counts": status_counts,
         "phases": [p.name for p in phases],
         "records_path": str(out_path),
     }

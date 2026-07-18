@@ -1,0 +1,6 @@
+vllm:nixl_xfer_time_seconds_count{engine="0",model_name="goodputlab-model"} 617.0
+vllm:nixl_xfer_time_seconds_sum{engine="0",model_name="goodputlab-model"} 4.723533999999997
+vllm:nixl_bytes_transferred_sum{engine="0",model_name="goodputlab-model"} 3.0900617216e+010
+# HELP vllm:nixl_num_failed_transfers_total Number of failed NIXL KV Cache transfers.
+# TYPE vllm:nixl_num_failed_transfers_total counter
+vllm:nixl_num_failed_transfers_total{engine="0",model_name="goodputlab-model"} 0.0
