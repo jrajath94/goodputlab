@@ -10,6 +10,11 @@ Goodput — completed requests under an SLO attainment target per
 second — is the metric the system optimizes for. Throughput without
 an attainment guarantee is not a usable signal.
 
+**Verified 2026-07-18:** 415 tests pass, 25 hardware-gated tests skip,
+and measured source modules report 93% line coverage locally. The 54-cell
+dedicated-H100 sweep retains all reconciled cell JSON, including the result
+that disaggregation did not beat colocation on TTFT for this model and load.
+
 ## Headline
 
 Run 1 (2026-07-09, RunPod 1x H100 SXM 80 GB, Qwen2.5-7B-Instruct,
