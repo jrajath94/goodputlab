@@ -376,6 +376,13 @@ USD). Per-cell JSONs are immutable on success — re-running without
 - [`configs/runpod_matrix.yaml`](configs/runpod_matrix.yaml) — pilot config
 - [`scripts/run_matrix.py`](scripts/run_matrix.py) — entry point
 
+## Evidence policy
+
+Results are reported with their topology, model, workload, and hardware
+context. Hardware-dependent measurements should be reproduced from the
+recorded campaign artifacts; the repository does not generalize a result
+outside the measured configuration.
+
 ## License
 
 MIT — see `LICENSE`.
