@@ -61,3 +61,6 @@ IMPLEMENTATION_BRIEF.md
 AgentSLA_Implementation_Brief.md
 EXECUTION_PROMPT.md
 .venv/
+
+# private agent dev notes — never publish
+.planning/
