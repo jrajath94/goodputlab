@@ -1,4 +1,4 @@
-# GoodputLab — honest russian-doll audit (2026-07-15)
+# GoodputLab - honest russian-doll audit (2026-07-15)
 
 This is a first-principles audit from the outside in. Every claim here
 is traceable to a file path, a test name, a coverage percentage, or a
@@ -7,7 +7,7 @@ measured JSON. No marketing, no fabricated numbers.
 If the report says something is "stub" or "planned", it is. If it says
 something is "real", a path and a test exist.
 
-## Layer 0 — what kind of project is this?
+## Layer 0 - what kind of project is this?
 
 | Property                | Value                                         |
 |-------------------------|-----------------------------------------------|
@@ -31,7 +31,7 @@ something is "real", a path and a test exist.
 > 47 test files / 7255 LOC test code. Per-module LOC and per-module
 > coverage in Layer 2 re-measured against the same snapshot.
 
-## Layer 1 — directory structure (no leaf files yet)
+## Layer 1 - directory structure (no leaf files yet)
 
 ```
 core/        4 modules   408 LOC    schemas + metrics + reconcile
@@ -52,9 +52,9 @@ docs/        README.md + CHANGELOG.md + CONTRIBUTING.md + RUNPOD.md
 Total documented inventory: **74 tracked files** (excluding `.planning/`
 which is private planning state, `.venv/`, caches, generated results).
 
-## Layer 2 — per-directory verdict
+## Layer 2 - per-directory verdict
 
-### `core/` — schema, metrics, reconciliation
+### `core/` - schema, metrics, reconciliation
 
 | File              | LOC | Status | Coverage | Notes                                |
 |-------------------|-----|--------|----------|--------------------------------------|
@@ -63,7 +63,7 @@ which is private planning state, `.venv/`, caches, generated results).
 | `reconcile.py`    | 126 | REAL   |  97 %    | ±2 % gate between loadgen + server   |
 | `__init__.py`     |   1 | REAL   | 100 %    | empty                                |
 
-### `control/` — the staff layer
+### `control/` - the staff layer
 
 | File             | LOC | Status   | Coverage | Notes                                |
 |------------------|-----|----------|----------|--------------------------------------|
@@ -78,7 +78,7 @@ The salt fix is CVE-2025-25183 mitigation. Anti-windup is genuine
 integrator-freeze logic, not a comment. Drain protocol is property-
 tested (50 random ticks, never scale-down with in_flight > 0).
 
-### `loadgen/` — request generation
+### `loadgen/` - request generation
 
 | File         | LOC | Coverage | Notes                                       |
 |--------------|-----|----------|---------------------------------------------|
@@ -92,11 +92,11 @@ tested (50 random ticks, never scale-down with in_flight > 0).
 | `replay.py`  |  32 | 100 %    | deterministic replay driver                 |
 | `__init__.py`|  26 | 100 %    | re-exports                                  |
 
-`agentic.py` is 100% covered (7 tests in `test_agentic_generator.py` —
+`agentic.py` is 100% covered (7 tests in `test_agentic_generator.py` -
 validation, byte-identity, prefix monotonicity, ≥60% overlap,
 output_tokens range, on/off arrival, invalid config).
 
-### `kv/` — LMCache tier
+### `kv/` - LMCache tier
 
 | File              | LOC | Status          | Coverage | Notes                                  |
 |-------------------|-----|-----------------|----------|----------------------------------------|
@@ -106,10 +106,10 @@ output_tokens range, on/off arrival, invalid config).
 **Honest framing:** `lmcache_client.py` is a `Protocol` + an
 in-memory `MockLmcacheClient` with probabilistic hits and LRU eviction.
 A real LMCache wire integration is the v1.1 swap. The Protocol means
-the swap is local — no caller changes. This is documented at the top
-of the file. **Not fabricated** — the docstring says "Mock".
+the swap is local - no caller changes. This is documented at the top
+of the file. **Not fabricated** - the docstring says "Mock".
 
-### `obs/` — observability
+### `obs/` - observability
 
 | File          | LOC | Coverage | Notes                                   |
 |---------------|-----|----------|-----------------------------------------|
@@ -119,7 +119,7 @@ of the file. **Not fabricated** — the docstring says "Mock".
 Standard Prometheus client. Not exercised by an integration test, but
 fully unit-tested via `test_obs.py`.
 
-### `spec/` — EAGLE-3 speculative decoding
+### `spec/` - EAGLE-3 speculative decoding
 
 | File       | LOC | Status     | Coverage | Notes                                |
 |------------|-----|------------|----------|--------------------------------------|
@@ -130,7 +130,7 @@ real draft-verify round trip. The `SpecPolicy.is_topology_compatible()`
 correctly refuses pure disagg / disagg_tier (P3 addendum). Sliding-
 window auto-disable is real. v1.1 swap point is documented.
 
-### `bench/` — measurement drivers
+### `bench/` - measurement drivers
 
 | File                   | LOC | Status | Notes                                |
 |------------------------|-----|--------|--------------------------------------|
@@ -149,7 +149,7 @@ window auto-disable is real. v1.1 swap point is documented.
 Ollama smoke is the M1 Max baseline path; commit history shows the
 streaming-parse bug was real and is now fixed in e057962.
 
-### `scripts/` — integration drivers
+### `scripts/` - integration drivers
 
 | File                 | LOC | Status     | Notes                              |
 |----------------------|-----|------------|------------------------------------|
@@ -162,7 +162,7 @@ streaming-parse bug was real and is now fixed in e057962.
 Ollama smoke is the M1 Max baseline path; commit history shows the
 streaming-parse bug was real and is now fixed in e057962.
 
-### `scripts/` — integration drivers
+### `scripts/` - integration drivers
 
 | File                 | LOC | Status     | Notes                              |
 |----------------------|-----|------------|------------------------------------|
@@ -170,13 +170,13 @@ streaming-parse bug was real and is now fixed in e057962.
 | `real_bench.py`      | 177 | REAL       | bench driver against live vLLM     |
 | `sentinel_daemon.py` | 179 | REAL       | sentinel-token validator           |
 
-These are **integration drivers** — they exercise against a live
+These are **integration drivers** - they exercise against a live
 vLLM pod. They are excluded from CI coverage (see CI yaml comment)
 and excluded from the cov gate by design. Static-shape tests exist
 in `test_disagg_proxy_static.py`, `test_real_bench.py`,
 `test_sentinel_static.py`.
 
-### `tests/` — 47 files
+### `tests/` - 47 files
 
 | Category                 | Files | Notes                                          |
 |--------------------------|-------|------------------------------------------------|
@@ -187,11 +187,11 @@ in `test_disagg_proxy_static.py`, `test_real_bench.py`,
 | Cross-cutting            | 13    | router + bench + spec + figures + reconcile   |
 
 _New in v0.2.x:_ `tests/test_doc_paths.py` (3 tests, doc path
-consistency — pinned the Gap 11 move) and
+consistency - pinned the Gap 11 move) and
 `tests/test_grafana_dashboard.py` (5 tests, OBS-02 dashboard pins
 every OBS-01 metric + ROADMAP Phase 8 panel tokens).
 
-### `configs/` — runtime knobs
+### `configs/` - runtime knobs
 
 ```
 configs/kv_producer.json         NIXL producer (UCX, cuda_ipc)
@@ -204,7 +204,7 @@ configs/kv_consumer.json         (also legacy config kept)
 All checked: UCX only, no LIBFABRIC (CVE-2025-27055 / vllm #27055
 mitigation). CI sentinel-gate grep-verifies this on every push.
 
-### `bench/results/` — measured evidence
+### `bench/results/` - measured evidence
 
 | File                       | Size | Status                                  |
 |----------------------------|------|-----------------------------------------|
@@ -220,7 +220,7 @@ mitigation). CI sentinel-gate grep-verifies this on every push.
 Every number in README "Headline" table is in one of these JSONs. The
 ollama JSONs are honest about the measurement hole (fixed in e057962).
 
-## Layer 3 — what's deferred to v1.1 (and why)
+## Layer 3 - what's deferred to v1.1 (and why)
 
 Per `CHANGELOG.md` §0.1, the project has a **$100 GPU budget cap**. The
 following are deferred, not stubbed:
@@ -238,7 +238,7 @@ All five are **documented in `CHANGELOG.md`, `docs/autoscaler/TUNING.md`,
 interfaces are real; the swap-in points are real; the simulators are
 honest about being simulators.
 
-## Layer 4 — what would make this more worldclass
+## Layer 4 - what would make this more worldclass
 
 In order of marginal value (highest first):
 
@@ -262,7 +262,7 @@ In order of marginal value (highest first):
 
 None of 1–8 is implemented in v0.1. The repo is honest about that.
 
-## Layer 5 — worldclass verdict
+## Layer 5 - worldclass verdict
 
 **For what v0.3.0 claims to be (an SLO-aware control plane prototype
 with measured Run 1 evidence, a green CI, a 2-cell RunPod pilot, a
@@ -278,7 +278,7 @@ serving system with trained speculative-decoding models, a full
 not worldclass.** The deferred list is the gap, and it is documented
 in `docs/GPU_EXECUTION_PLAN.md` and `docs/GAP_REPORT.md`.
 
-## Layer 6 — answer to "are we done?"
+## Layer 6 - answer to "are we done?"
 
 **Done for v0.3.0 release.** All 8 phases shipped per CHANGELOG and
 STATE.md Phase Progress table. 390 tests pass (25 skipped) at 97 %
@@ -291,7 +291,7 @@ with prompt fix, multi-node P/D, live autoscaler workload-shift,
 real LMCache gRPC, trained EAGLE-3 head in DraftForge, failure-drill
 appendix). See `docs/GPU_EXECUTION_PLAN.md` for the execution plan.
 
-## Layer 7 — answer to "is it worldclass?"
+## Layer 7 - answer to "is it worldclass?"
 
 For a Staff-track resume in inference roles: **yes, as v0.3.0**. The
 five signals from the workspace `CLAUDE.md`:
@@ -306,7 +306,7 @@ five signals from the workspace `CLAUDE.md`:
 
 If the hiring loop values the v1.1 bench matrix and live multi-node
 P/D more than the prototype + measured Run 1 + green CI, then this is
-**not yet worldclass** — push for v1.1. If it values honesty about
+**not yet worldclass** - push for v1.1. If it values honesty about
 scope and a working control plane over a partial multi-node system,
 this is **worldclass as shipped**.
 
@@ -315,9 +315,9 @@ then run v1.1 in the weeks before the onsite.
 
 ## References
 
-- `CHANGELOG.md` — release-scope policy, deferred list.
-- `README.md` — measured Run 1 table + honest reading.
-- `docs/autoscaler/TUNING.md` — what's enforced vs planned.
-- `bench/results/real/*.json` — Run 1 evidence.
-- `bench/results/ollama/README.md` — local M1 Max measurement notes.
-- `scripts/check_origin_clean.sh` — leaked-docs sentinel (P5-1).
+- `CHANGELOG.md` - release-scope policy, deferred list.
+- `README.md` - measured Run 1 table + honest reading.
+- `docs/autoscaler/TUNING.md` - what's enforced vs planned.
+- `bench/results/real/*.json` - Run 1 evidence.
+- `bench/results/ollama/README.md` - local M1 Max measurement notes.
+- `scripts/check_origin_clean.sh` - leaked-docs sentinel (P5-1).
