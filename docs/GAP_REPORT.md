@@ -1,4 +1,4 @@
-# Gap Report — GoodputLab v1.0 implementation vs ROADMAP
+# Gap Report - GoodputLab v1.0 implementation vs ROADMAP
 
 **Date:** 2026-07-15 (refresh of 2026-07-14 original)
 **Source plans:** `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` (50 v1 reqs), `.planning/ROADMAP.md` (8 phases), `.planning/STATE.md` (frontmatter).
@@ -31,13 +31,13 @@ implementation. The current actionable GPU-blocked backlog is:
 
 | # | Gap | Severity | Effort | GPU? |
 |---|-----|----------|--------|------|
-| 1 | ~~RAG + agentic prompt-length fix~~ | ✅ Closed (2026-07-17) | — | verified: 2/2 cells reconcile at `--max-model-len 20480`, zero HTTP 400 (`bench/results/runpod_context_repair/`) |
-| 2 | ~~True disagg on separate P/D processes with NIXL metrics~~ | ✅ Closed single-GPU (2026-07-17) | — | first NIXL-backed cells: 30 transfers / 2.11 GB / 0 failed (`bench/results/runpod_paired_disagg/`); dedicated-hardware variant folds into #3 |
+| 1 | ~~RAG + agentic prompt-length fix~~ | ✅ Closed (2026-07-17) | - | verified: 2/2 cells reconcile at `--max-model-len 20480`, zero HTTP 400 (`bench/results/runpod_context_repair/`) |
+| 2 | ~~True disagg on separate P/D processes with NIXL metrics~~ | ✅ Closed single-GPU (2026-07-17) | - | first NIXL-backed cells: 30 transfers / 2.11 GB / 0 failed (`bench/results/runpod_paired_disagg/`); dedicated-hardware variant folds into #3 |
 | 3 | Multi-node / multi-GPU P/D (dedicated per-stage hardware, `tcp/rdma` UCX) | 🟡 GPU-blocked | medium/high | **Yes** |
 | 4 | Live autoscaler workload-shift validation | 🟡 GPU-blocked | medium | **Yes** |
 | 5 | Real LMCache gRPC wire client | 🔵 Deferred | v1.1 | Yes |
 | 6 | Trained EAGLE-3 head (DraftForge scope) | 🔵 Deferred | separate repo | Out of scope |
-| 7 | Remaining full-matrix cells (final polish, ~$8-12) | 🟡 GPU-blocked | low | **Yes** — all blockers now cleared; run only as final polish per ladder |
+| 7 | Remaining full-matrix cells (final polish, ~$8-12) | 🟡 GPU-blocked | low | **Yes** - all blockers now cleared; run only as final polish per ladder |
 
 The execution-level GPU plan lives in `docs/GPU_EXECUTION_PLAN.md`.
 
@@ -125,7 +125,7 @@ to be plumbed in (dependency injection).
    ```
    And remove `*.parquet`.
 2. Document the choice in AUDIT.md under "REPRO-03 status".
-3. Add a stub writer `bench/parquet_export.py` (lazy — only when a real bench run produces data,
+3. Add a stub writer `bench/parquet_export.py` (lazy - only when a real bench run produces data,
    no committed JSON yet).
 
 **Alternative (lighter):** Document that v0.1.0 stores JSON-only; parquet is v1.1. Mark REPRO-03
@@ -149,10 +149,10 @@ Status: **✅ Closed (v0.3.0)**.
 > > `stopped_at: Phase 4 (RTR-verify) code landed + tested (177 passed, 20 skipped, 95% cov); Phases 5-8 (KV/SPEC/AUTO/BENCH) deferred per $100 GPU budget cap`
 >
 > But actual disk state was:
-> - Phase 5: `kv/lmcache_client.py`, `kv/tier_policy.py`, `configs/lmcache_*.yaml`, `configs/kv_lmcache_*.json` — shipped
-> - Phase 6: `spec/eagle.py`, `tests/test_eagle.py` — shipped
-> - Phase 7: `control/autoscaler.py`, `control/pid.py`, `autoscaler/TUNING.md`, `tests/test_autoscaler.py`, `tests/test_pid.py` — shipped
-> - Phase 8: `bench/results/real/`, `bench/results/runpod_full/`, `bench/results/runpod_pilot/`, `docs/REPORT.md` (418 lines, 3K words), `bench/figures/*.png`, `cost_per_million_tokens.csv`/.md — shipped
+> - Phase 5: `kv/lmcache_client.py`, `kv/tier_policy.py`, `configs/lmcache_*.yaml`, `configs/kv_lmcache_*.json` - shipped
+> - Phase 6: `spec/eagle.py`, `tests/test_eagle.py` - shipped
+> - Phase 7: `control/autoscaler.py`, `control/pid.py`, `autoscaler/TUNING.md`, `tests/test_autoscaler.py`, `tests/test_pid.py` - shipped
+> - Phase 8: `bench/results/real/`, `bench/results/runpod_full/`, `bench/results/runpod_pilot/`, `docs/REPORT.md` (418 lines, 3K words), `bench/figures/*.png`, `cost_per_million_tokens.csv`/.md - shipped
 
 ---
 
@@ -163,7 +163,7 @@ Status: **✅ Closed (v0.3.0)**.
 
 **Current state (closed in commit `ade9526` 2026-07-15, refined v0.3.0):** The
 dashboard JSON ships at `deploy/grafana/goodputlab.json` as an explicit
-**placeholder** — Option A above, with the dashboard's top-level
+**placeholder** - Option A above, with the dashboard's top-level
 `description` field naming the gap, per integrity baseline.
 
 Status: **✅ Closed-as-placeholder (v0.3.0)**. The 5 tests in
@@ -203,17 +203,17 @@ counters and histograms.
 > "`make bench` runs full matrix: 4 topologies × 3 workloads × 6 load levels × 3 seeds = 216 cells"
 
 **Current state (2026-07-16):**
-- `bench/results/real/`: 4 JSONs (Run 1, H100 SXM 80 GB Qwen2.5-7B, all 4 topos — 30 reqs each, all reconciled; the canonical TTFT/ITL evidence cited in `docs/REPORT.md` and `README.md` headline).
+- `bench/results/real/`: 4 JSONs (Run 1, H100 SXM 80 GB Qwen2.5-7B, all 4 topos - 30 reqs each, all reconciled; the canonical TTFT/ITL evidence cited in `docs/REPORT.md` and `README.md` headline).
 - `bench/results/runpod_pilot/`: 2 JSONs (rate-4 + rate-8 colocated chat, all reconciled; pilot cost $0.008 per cell, $1.26 pod total).
-- `bench/results/runpod_full/`: 72 JSONs (24 reconciled + 48 unreconciled stub cells; only `chunked` (6/18 reconciled) and `colocated` (18/54 reconciled) topologies populated; `disagg` and `disagg_tier` cells were never generated — the sweep stopped before reaching them, see `bench/results/runpod_full/README.md`).
-- `bench/results/runpod_v11/`: **54 JSONs** (44 reconciled, 10 unreconciled; 2026-07-16, H100 SXM 80 GB Qwen2.5-7B, `--max-model-len=16384`, $0.63 spend). 16K context lifts the RAG and agentic overflow from `runpod_full/`. 18 cells labelled `disagg` are served by the same single-vLLM process as `colocated` and `chunked` — see `bench/results/runpod_v11/README.md` §"Honest finding" for why. 0/54 stub cells.
+- `bench/results/runpod_full/`: 72 JSONs (24 reconciled + 48 unreconciled stub cells; only `chunked` (6/18 reconciled) and `colocated` (18/54 reconciled) topologies populated; `disagg` and `disagg_tier` cells were never generated - the sweep stopped before reaching them, see `bench/results/runpod_full/README.md`).
+- `bench/results/runpod_v11/`: **54 JSONs** (44 reconciled, 10 unreconciled; 2026-07-16, H100 SXM 80 GB Qwen2.5-7B, `--max-model-len=16384`, $0.63 spend). 16K context lifts the RAG and agentic overflow from `runpod_full/`. 18 cells labelled `disagg` are served by the same single-vLLM process as `colocated` and `chunked` - see `bench/results/runpod_v11/README.md` §"Honest finding" for why. 0/54 stub cells.
 
 Honest reconciled-cell count: **74 of 216 = ~34 %** (4 Run 1 + 2 pilot
 + 24 reduced-sweep + 44 v1.1 sweep). 50 attempted cells failed to
 reconcile (mostly RAG overflow at 16K and rate-saturation at 32 rps).
 The unreconciled cells in `runpod_full/` were stub cells caused by
 vLLM `--max-model-len=4096` rejecting the 16K-token RAG and 5K+
-agentic prompts — a prompt-shape mismatch, not an aggregator bug. The
+agentic prompts - a prompt-shape mismatch, not an aggregator bug. The
 unreconciled cells in `runpod_v11/` are HTTP 400 responses at the
 16K prompt ceiling, again a model-cap issue.
 
@@ -224,7 +224,7 @@ unreconciled cells in `runpod_v11/` are HTTP 400 responses at the
 - Multi-node P/D (`cuda_ipc` fails on separate pods) needs topology testing for `tcp` / `rdma` UCX.
 - `disagg` and `disagg_tier` cells in the reduced sweep were never generated (sweep stopped before reaching them); re-running with `run_pending` would resume from chunked × qwen2.5-7b and pick up the remaining cells.
 
-**Cheapest fix (updated 2026-07-16):** 16384 is NOT enough — the v1.1
+**Cheapest fix (updated 2026-07-16):** 16384 is NOT enough - the v1.1
 sweep already ran at `--max-model-len=16384` and RAG cells still
 returned HTTP 400. The local prompt preflight (`bench/preflight.py`,
 run at $0 on the M1) measures the RAG worst-case prompt+output at
@@ -242,7 +242,7 @@ staged ladder in `docs/GPU_COST_OPTIMIZATION.md`.
 
 **Roadmap reference:** v2 / MULTI-01.
 
-**Status:** Out of scope for v0.1.0 per ROADMAP. Useful v1.1 work — but expensive (~$30 for
+**Status:** Out of scope for v0.1.0 per ROADMAP. Useful v1.1 work - but expensive (~$30 for
 a couple hours of 2× H100 on RunPod).
 
 **Blocker:** user confirmation + spawn flow.
@@ -263,7 +263,7 @@ Status: **✅ Closed (v0.2.0)**.
 
 ---
 
-## TDD work order (this session — completed 2026-07-14)
+## TDD work order (this session - completed 2026-07-14)
 
 | Order | Gap | Commit | Status |
 |-------|-----|--------|--------|
