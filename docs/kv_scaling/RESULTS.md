@@ -92,7 +92,7 @@ block pool is readable). Model: Qwen/Qwen2.5-0.5B-Instruct at revision
 `7ae557604adf67be50417f59c2c2f167def9a775`. GPU: one RTX 4090.
 
 Per cell: 5 samples, temperature 0, seed 0. Decode window 30 tokens,
-sized from MEASURED wave spacing (5+ engine steps) with 6x margin —
+sized from MEASURED wave spacing (5+ engine steps) with 6x margin -
 decode length is arbitrary to the measured quantity (KV bytes per live
 token), so a longer window only widens the all-alive overlap; it
 cannot bias the bytes/token reading. `ignore_eos=True`: the study
@@ -113,7 +113,7 @@ s16384 b8 both green) and failed at 32 chunks: at s16384 b16, wave 1's
 requests finished their 30 decode tokens before wave 32's prefill
 completed. Wave spacing scales with chunk count; a flat window does
 not. The prefill-timing guard fired its loud refusal exactly as
-designed — no partial batch was measured.
+designed - no partial batch was measured.
 
 Excluded: s16384 b16, s32768 b1-b16. The s32768 row was never
 attempted (the grid stops at the first refusal). A chunk-scaled window
@@ -127,39 +127,39 @@ is the defensible artifact.
 Twelve campaigns ran. Each taught one thing; the fixes are all in the
 committed code and TRD §9-§10.
 
-1. `kv-scaling-20260928`: CUDA fork poisoning — `torch.cuda.is_available()`
+1. `kv-scaling-20260928`: CUDA fork poisoning - `torch.cuda.is_available()`
    in the parent before vLLM forked EngineCore killed the smoke cell;
    the pod idled 96 minutes (~$1.18) before manual termination. Fix:
    answer CUDA availability from `nvidia-smi`, export
    `PYTORCH_NVML_BASED_CUDA_CHECK=1`.
-2. `kv-scaling-20260928b`: `KeyError: torch_dtype` — vLLM 0.11.2's wrapped
+2. `kv-scaling-20260928b`: `KeyError: torch_dtype` - vLLM 0.11.2's wrapped
    HF config drops the key. First fix fell through to transformers.
-3. `kv-scaling-20260928c`: transformers' `to_dict()` is equally lossy —
+3. `kv-scaling-20260928c`: transformers' `to_dict()` is equally lossy -
    same KeyError. Real fix: take the element width from the engine's
    runtime dtype, last resort reads raw config.json over HTTPS.
-4. `kv-scaling-20260928d`: `SyncMPClient` has no scheduler — the block
+4. `kv-scaling-20260928d`: `SyncMPClient` has no scheduler - the block
    pool lives across a subprocess boundary by default. Fix: run the
    engine in-process.
-5. `kv-scaling-20260928e`: tile-boundary token merge — the prompt
+5. `kv-scaling-20260928e`: tile-boundary token merge - the prompt
    builder lost one token per tile boundary (1023 vs 1024). Fix: tile
    past the target, re-encode, truncate at a token boundary.
 6. `kv-scaling-20260928f`: the campaign tail fit a regression on the
-   single smoke cell — a slope on one point is undefined. Fix: skip
+   single smoke cell - a slope on one point is undefined. Fix: skip
    the fit for single-cell runs.
 7. `kv-scaling-20260928g`: prefix caching shared KV blocks across the
-   identical batch prompts — the block gate tripped at batch 2. Fix:
+   identical batch prompts - the block gate tripped at batch 2. Fix:
    `enable_prefix_caching=False`.
-8. `kv-scaling-20260928h`: chunked-prefill stagger at batch 16 — the
+8. `kv-scaling-20260928h`: chunked-prefill stagger at batch 16 - the
    decode reading on the all-finished step missed already-freed waves.
    Fix: freeze at the last all-alive step, `(chunks+1)` decode rule,
    pin `max_num_batched_tokens`.
 9. `kv-scaling-20260928i`: early EOS ended waves before the last wave
    prefilled (s2048 b16). Fix: `ignore_eos=True`.
-10. `kv-scaling-20260928j`: infra failure, not science — the monitor's
+10. `kv-scaling-20260928j`: infra failure, not science - the monitor's
     20-minute dead-poll cap killed a healthy pod mid `pip install`
     (~$0.25). Fix: progress-aware 50-minute cap, pip shows progress.
 11. `kv-scaling-20260929k`: wave spacing exceeds 5 engine steps, but the
-    `(chunks+1)` rule assumed one step per wave — failed at s2048 b16.
+    `(chunks+1)` rule assumed one step per wave - failed at s2048 b16.
     9 cells green (~$0.14). Fix: 30-token window from measured spacing,
     prefill-timing guard reordered to fire first.
 12. `kv-scaling-20260929l`: 24 cells green, loud refusal at s16384 b16
@@ -174,7 +174,7 @@ committed code and TRD §9-§10.
   `7ae557604adf67be50417f59c2c2f167def9a775`, `max_model_len=32768`
 - Cells attempted: 25 (24 green, 1 refused); s32768 row unattempted
 - Wall time: ~15 minutes pod life; cost ~$0.19
-- Series total: about $4 across 12 campaigns, under the $5 PRD budget —
+- Series total: about $4 across 12 campaigns, under the $5 PRD budget -
   itemized: $1.18 (campaign 1, idle pod before the monitor was
   hardened) + $0.17 + $0.10 x 5 (campaigns 2-7, smoke/gate failures,
   each terminated by the monitor) + ~$0.45 (campaign 8, estimated
@@ -187,9 +187,9 @@ committed code and TRD §9-§10.
 ## Exhibits
 
 - `bench/results/kv_scaling/kv-scaling-20260929l-qwen2p5-0p5b-rtx4090/cells.json`
-  — the 24 cells, schema 1.1 (transcribed from the pod log; see
+  - the 24 cells, schema 1.1 (transcribed from the pod log; see
   `PROVENANCE.md` in the same directory for the method)
-- `bench/kv_scaling/figures/` — the three PRD plots, regenerated from
+- `bench/kv_scaling/figures/` - the three PRD plots, regenerated from
   the final cells
 - Run materials (not committed): the full bootstrap.log exhibit,
   per-attempt monitor logs, and tarball at `~/workspace/kv-scaling/`
