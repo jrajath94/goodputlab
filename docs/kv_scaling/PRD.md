@@ -55,26 +55,26 @@ proves that craft.
 1. Measured `b` lands within ±15% of the config-derived theory
    (12,288 bytes/token for Qwen2.5-0.5B-Instruct fp16). Method:
    slope of the linear regression in `docs/kv_scaling/TRD.md` §4.
-   Status: MEASURED — slope 12,295.8 B/token (+0.06% vs theory),
+   Status: MEASURED - slope 12,295.8 B/token (+0.06% vs theory),
    campaign `kv-scaling-20260929l`, 2026-09-29.
-2. Regression R² ≥ 0.98 across cell medians. Status: MEASURED —
+2. Regression R² ≥ 0.98 across cell medians. Status: MEASURED -
    R² = 1.0000.
 3. Knee `T*` reported with its derivation and the measured `F`.
-   Status: MEASURED — T* = 131,241 total context tokens (s16384 b8),
+   Status: MEASURED - T* = 131,241 total context tokens (s16384 b8),
    F = 1,021,813,248 bytes (~0.95 GiB).
 4. All 30 grid cells reconciled per the gates in
    `docs/kv_scaling/EXECUTION.md`. Failed cells are kept as failure
-   exhibits and excluded from claims. Status: BOUNDED — 24/30 cells
+   exhibits and excluded from claims. Status: BOUNDED - 24/30 cells
    reconciled; s16384 b16 refused by the prefill-timing guard
    (32 prefill chunks, measured root cause in RESULTS.md), the
    s32768 row unattempted. The 6 excluded cells are documented, not
    estimated.
 5. Total GPU spend under $5 with a run log in the format of
-   `docs/GPU_COST_OPTIMIZATION.md`. Status: MEASURED — about $4
+   `docs/GPU_COST_OPTIMIZATION.md`. Status: MEASURED - about $4
    across 12 campaigns, itemized in `docs/kv_scaling/RESULTS.md`
    (run log; campaigns 8-9 estimated from monitor logs).
 6. The headline claim in §Goals-4 may appear in the README only after
-   criteria 1-5 hold. Status: NOT USED — criterion 4 holds only in
+   criteria 1-5 hold. Status: NOT USED - criterion 4 holds only in
    bounded form, so the README carries no unqualified headline. The
    bounded claim lives in `docs/kv_scaling/RESULTS.md`.
 
