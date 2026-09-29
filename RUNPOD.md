@@ -1,4 +1,4 @@
-# RunPod Cost Plan — Real Benchmark Campaign
+# RunPod Cost Plan - Real Benchmark Campaign
 
 > **Status: APPROVED + EXECUTED (2026-07-09 + 2026-07-14).** The
 > original 4×H100 multi-pod plan below was **deferred** in favour of a
@@ -36,11 +36,11 @@ per topology = 12 run slots.
 
 > Note: the table above describes the *intended* topology profiles.
 > Every run executed so far (Run 1, pilot, 72-cell, v1.1) served all
-> topology labels from a single vLLM process — the disagg rows measure
+> topology labels from a single vLLM process - the disagg rows measure
 > routing, not true P/D transfer. True disagg evidence is still open
 > and gated behind `configs/runpod_paired_disagg.yaml`.
 
-## Sizing per run — 4×H100 plan (DEFERRED to v1.1)
+## Sizing per run - 4×H100 plan (DEFERRED to v1.1)
 
 | Resource | Quantity | Why |
 |----------|----------|-----|
@@ -50,21 +50,21 @@ per topology = 12 run slots.
 | Storage | 1 TB NVMe | Model + LMCache tier |
 | Network | 10 Gbps intra-pod | NIXL transfers |
 
-## Cost estimate — 4×H100 plan (DEFERRED)
+## Cost estimate - 4×H100 plan (DEFERRED)
 
 | Item | Unit | Hours | Cost/hr | Subtotal |
 |------|------|-------|---------|----------|
 | 4×H100 on-demand | 4 GPUs | 6h | $24 | $576 |
 | 4×H100 spot (50% off) | 4 GPUs | 6h | $12 | $288 |
-| Model pull (Llama-3-8B or Qwen3-14B) | — | — | — | $0 (HF) |
+| Model pull (Llama-3-8B or Qwen3-14B) | - | - | - | $0 (HF) |
 | LMCache tier (NVMe) | 1 TB | 6h | $0.20 | $1.20 |
-| Bandwidth (intra-pod) | — | — | — | included |
+| Bandwidth (intra-pod) | - | - | - | included |
 
 **Total on-demand: ~$577** (single 6h session, 4 GPUs)
 
 **Total spot: ~$289** (50% discount, risk: preemption)
 
-## Cost — 1×H100 actual runs (2026-07-09 + 2026-07-14)
+## Cost - 1×H100 actual runs (2026-07-09 + 2026-07-14)
 
 | Item | Cost | Duration | Notes |
 |---|---|---|---|
@@ -79,7 +79,7 @@ pipeline validation but cannot run true DISAGG (needs separate prefill
 process). Those limitations are documented in
 `bench/results/runpod_full/README.md`.
 
-## Run schedule — 4×H100 plan (DEFERRED)
+## Run schedule - 4×H100 plan (DEFERRED)
 
 | Step | Duration | Description |
 |------|----------|-------------|
@@ -133,13 +133,13 @@ After one approved RunPod session, this document is updated with
 from `bench/results/*.json`. Until then, every numeric claim in the
 repo is `[NOT YET MEASURED]` per the integrity baseline.
 
-## Measured numbers — Run 1 (2026-07-09)
+## Measured numbers - Run 1 (2026-07-09)
 
 **Pod**: `wz3wmqpkyu4hw7` (1×H100 SXM 80GB, US-MO-1)
 **Model**: Qwen2.5-7B-Instruct (bf16, `--max-model-len 4096`)
 **Load**: 30 requests, Poisson arrival @ 4 RPS, 64-token prompts, 24-token outputs
 **Topology emulation**: single vLLM process; router makes pool decision
-(true P/D would require 2 vLLM processes + NIXL — out of budget for this run)
+(true P/D would require 2 vLLM processes + NIXL - out of budget for this run)
 
 | Topology | n | success | mean_ttft_ms | p95_ttft_ms | mean_itl_ms | cache_hit |
 |---|---|---|---|---|---|---|
@@ -164,14 +164,14 @@ prefixes).
 Raw JSON: `bench/results/real/{colocated,chunked,disagg,disagg_tier,summary}.json`
 Pod session cost: $3.50 (70 min @ $2.99/hr on-demand)
 
-## Measured numbers — Pilot (2026-07-14)
+## Measured numbers - Pilot (2026-07-14)
 
 2-cell pilot on H100 SXM, qwen2.5-7b, chat mix. All reconciled.
 See `bench/results/runpod_pilot/README.md` for full table.
 
-## Measured numbers — 72-cell reduced sweep (2026-07-14)
+## Measured numbers - 72-cell reduced sweep (2026-07-14)
 
-1×H100 SXM pod, 26 min wall. **24/72 cells reconciled** (chat mix only —
+1×H100 SXM pod, 26 min wall. **24/72 cells reconciled** (chat mix only -
 agentic + RAG fully failed due to ~4× prompt overflow on vLLM
 `--max-model-len=4096`). DISAGG / DISAGG_TIER cells never attempted:
 sweep was interrupted mid-run after colocated×3 models + chunked×1
@@ -183,7 +183,7 @@ Median TTFT: 120.83 ms; p95 TTFT: 493.42 ms
 
 See `bench/results/runpod_full/README.md` for the honest breakdown,
 including model coverage and per-topology tables.
-## Measured numbers — Frugal ladder session (2026-07-17)
+## Measured numbers - Frugal ladder session (2026-07-17)
 
 1×H100 SXM secure pod (`ewzxmo3mcttjm8`), ~53 min wall, **~$2.64**.
 Every rung gated by the in-code spend gate (`--approve-cost`) and the
@@ -193,14 +193,14 @@ as a documented exhibit.
 | Rung | Cells | Outcome |
 |---|---|---|
 | Smoke | 1/1 | reconciled (TTFT 731 ms) |
-| Context repair (`--max-model-len 20480`) | 2/2 | RAG + agentic reconciled, zero HTTP 400 — overflow root cause closed |
+| Context repair (`--max-model-len 20480`) | 2/2 | RAG + agentic reconciled, zero HTTP 400 - overflow root cause closed |
 | Paired chat (real server restarts) | 4/4 | colocated vs chunked within noise at 4/16 rps |
 | Paired disagg (**true P/D**) | 2/3 | first NIXL-backed disagg cells: 30 transfers, 2.11 GB, 0 failed |
 
 Headline honest findings:
 
 - **True disagg at 4 rps: +25 % TTFT vs colocated** (919 vs 735 ms),
-  ITL parity — protocol + proxy overhead with no dedicated hardware to
+  ITL parity - protocol + proxy overhead with no dedicated hardware to
   amortize it.
 - **Single-GPU P/D collapses at 16 rps** (0.73 success, 9 s TTFT):
   prefill and decode processes time-slice one H100. Disagg needs
@@ -218,12 +218,12 @@ evidence trail (before/after NIXL counters committed alongside cells).
 | Frugal ladder session (2026-07-17) | ~$2.64 |
 | **Total project GPU spend** | **~$8.70** |
 
-## Measured numbers — v1.2 dedicated-hardware sweep (2026-07-17)
+## Measured numbers - v1.2 dedicated-hardware sweep (2026-07-17)
 
 2× H100 SXM secure pod (`u1n8efij0owar2`, $5.98/hr), three passes with
-real server swaps. **54/54 cells reconciled** — first sweep with zero
+real server swaps. **54/54 cells reconciled** - first sweep with zero
 label-only rows. Full tables + NIXL counters:
-`bench/results/runpod_v12/README.md`. Autoscaler live run (partial —
+`bench/results/runpod_v12/README.md`. Autoscaler live run (partial -
 drain invariant + no-thrash validated, scale-up path not live-tested):
 `bench/results/autoscaler_live/README.md`.
 
