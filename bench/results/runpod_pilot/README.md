@@ -1,4 +1,4 @@
-# RunPod Pilot Sweep — 2026-07-14
+# RunPod Pilot Sweep - 2026-07-14
 
 First end-to-end bench on real H100 SXM. 2 cells, ~$0.01 GPU cost.
 
@@ -22,13 +22,13 @@ First end-to-end bench on real H100 SXM. 2 cells, ~$0.01 GPU cost.
 
 - All cells: `reconcile_passes=true` (success_rate ≥ 0.99 gate)
 - Thermal: no warnings (THRESHOLD = 80°C, measured 37-39°C at 89-90% util)
-- Cache hit rate: 0.0 (correct — colocated topology, no KV-tier)
+- Cache hit rate: 0.0 (correct - colocated topology, no KV-tier)
 
 ## Wall clock + cost
 
 - Per-cell wall: 4-11s (warmup + measure)
 - Total sweep wall: 15.6s
-- Bench cost: $0.0130 (15.6s × $2.99/hr ÷ 3600) — was incorrectly stated as $0.0079 in earlier draft
+- Bench cost: $0.0130 (15.6s × $2.99/hr ÷ 3600) - was incorrectly stated as $0.0079 in earlier draft
 - Pod total (incl. vLLM install + model load): ~25 min, ~$1.25
 - **Effective bench cost per cell: ~$0.004**
 
@@ -42,11 +42,11 @@ First end-to-end bench on real H100 SXM. 2 cells, ~$0.01 GPU cost.
 
 ## What this does NOT prove (still need full sweep)
 
-1. **DISAGG topology** (P/D split, NIXL UCX KV transfer) — pilot only ran colocated.
-2. **DISAGG_TIER topology** (KV-tier with LMCache) — needs LMCache setup.
-3. ~~**Multi-model** (qwen3-1.7b, qwen3-30b) — pilot only ran qwen2.5-7b.~~ *Done in full sweep — see runpod_full/README.md (12 qwen3-1.7b + 6 qwen2.5-7b + 6 qwen3-30b reconciled).*
-4. **RAG + agentic mixes** — pilot only ran chat. *Full sweep also failed both — both at 0% success, see runpod_full README "Honest finding" section.*
-5. **Steady-state TTFT at 16+ rps** — pilot capped at 8 rps. *Full sweep covered rates up to 32 rps.*
+1. **DISAGG topology** (P/D split, NIXL UCX KV transfer) - pilot only ran colocated.
+2. **DISAGG_TIER topology** (KV-tier with LMCache) - needs LMCache setup.
+3. ~~**Multi-model** (qwen3-1.7b, qwen3-30b) - pilot only ran qwen2.5-7b.~~ *Done in full sweep - see runpod_full/README.md (12 qwen3-1.7b + 6 qwen2.5-7b + 6 qwen3-30b reconciled).*
+4. **RAG + agentic mixes** - pilot only ran chat. *Full sweep also failed both - both at 0% success, see runpod_full README "Honest finding" section.*
+5. **Steady-state TTFT at 16+ rps** - pilot capped at 8 rps. *Full sweep covered rates up to 32 rps.*
 6. **Failure modes** (router reject, KV stall, nvidia-smi stall).
 
 ## Next step
