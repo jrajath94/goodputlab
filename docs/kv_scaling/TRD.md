@@ -123,7 +123,7 @@ Per sample:
    x margin, see §9(k)) so the cache is filled and activations are in
    steady decode, not prefill. Sampling sets `ignore_eos=True`: EOS is disabled, so the
    decode length is exactly the fixed count for every request. EOS
-   timing is out of scope for the measured quantity — the study
+   timing is out of scope for the measured quantity - the study
    measures KV bytes per live token, and when a request emits EOS
    says nothing about how many bytes each live token holds. Without
    this, early EOS on the fixed prompts let finished waves free
@@ -450,7 +450,7 @@ Background: campaign kv-scaling-20260928 died at the smoke cell with
 then idled ~96 minutes (~$1.18) before manual termination.
 
 (f) Theory resolution tolerates lossy engine configs. Check: both
-`_resolve_theory` regression tests pass — the runtime-dtype test
+`_resolve_theory` regression tests pass - the runtime-dtype test
 (fake engine whose config dict lacks `torch_dtype` but whose
 `model_config.dtype` is bf16 yields 12,288 B/token with provenance
 `engine:...+runtime-dtype`) and the raw-Hub-config test (no engine
@@ -466,7 +466,7 @@ terminated both pods itself (~$0.17 and ~$0.1, no idle burn).
 (g) Engine runs in-process so the block pool is readable. Check: the
 bootstrap exports `VLLM_ENABLE_V1_MULTIPROCESSING=0` (and
 `_run_vllm_sweep_impl` setdefaults it before `LLM(...)`); both
-`_probe_block_pool` regression tests pass — the InprocClient layout
+`_probe_block_pool` regression tests pass - the InprocClient layout
 resolves to the pool, and a SyncMPClient-shaped engine fails loudly
 instead of reading a wrong pool. GREEN means the smoke cell can
 actually read free GPU blocks.
@@ -477,7 +477,7 @@ the monitor saved the exhibit and terminated the pod (~$0.1).
 
 (h) Prompt builder resolves tile-boundary token merges. Check: the
 `test_build_exact_length_prompts_survives_tile_boundary_merge`
-regression test passes — a fake tokenizer that merges " " + "The"
+regression test passes - a fake tokenizer that merges " " + "The"
 into one token at tile boundaries (the Qwen2.5-0.5B behavior) still
 yields exact-length prompts, because the builder re-encodes the tiled
 text to its true tokenization before truncating. Also verified by hand
@@ -488,7 +488,7 @@ Background: campaign kv-scaling-20260928e died at the smoke cell with
 "prompt round trip gave 1023 tokens, expected 1024". Root cause, found
 by reproducing against the real tokenizer: naive id tiling puts a tile
 boundary between the trailing " " of one tile and the leading "The" of
-the next, and re-encoding merges them into the single token " The" —
+the next, and re-encoding merges them into the single token " The" -
 one token lost per boundary. Fix: tile past the target, decode, then
 re-encode to the TRUE tokenization (merges resolved) and truncate that
 at a token boundary; the final re-encode still verifies the length and
@@ -496,13 +496,13 @@ fails loudly on a genuinely broken tokenizer. The monitor saved the
 exhibit and terminated the pod itself (~$0.1, no idle burn).
 
 (i) Single-cell smoke run skips the campaign regression fit. Check:
-both `_finish_campaign_artifacts` regression tests pass — one cell
+both `_finish_campaign_artifacts` regression tests pass - one cell
 writes no campaign artifacts (the fit is skipped, the smoke exits 0
 on the cell JSON alone) and two cells write cells.json/summary.json
 with the fitted slope. GREEN means the smoke cannot die fitting a
 slope on one point.
 Background: campaign kv-scaling-20260928f died at the smoke cell with
-"need at least 2 points for a fit, got 1" — the first campaign to get
+"need at least 2 points for a fit, got 1" - the first campaign to get
 past cell measurement, so the first to reach the unconditional
 `fit_bytes_per_token` at the end of `run_vllm_sweep`. A slope on one
 point is undefined; the smoke's gates are the block-consistency checks
@@ -511,7 +511,7 @@ itself (~$0.1, no idle burn).
 
 (j) Prefix caching is off so identical prompts do not share KV blocks.
 Check: the `test_llm_kwargs_disable_prefix_caching` regression test
-passes — `_llm_kwargs` (the single place that builds the vLLM
+passes - `_llm_kwargs` (the single place that builds the vLLM
 `LLM(...)` kwargs) sets `enable_prefix_caching=False`, verified
 against the real 0.11.2 source (`EngineArgs.enable_prefix_caching`
 in `vllm/engine/arg_utils.py`, forwarded through `LLM.__init__`'s
@@ -522,7 +522,7 @@ grid's first batch-2 cell died at the block gate: "block accounting
 reports 1056 token-slots below the 2050 live tokens". Root cause: the
 sweep builds identical prompts per batch and vLLM defaults
 `enable_prefix_caching=True`, so the second request's prompt was a
-prefix-cache hit on the first request's KV blocks — 66 blocks held
+prefix-cache hit on the first request's KV blocks - 66 blocks held
 2050 live tokens. The measurement model needs every request to hold
 its own blocks, so caching must be off; leaving it on would also
 silently undercount bytes in the regression, not just trip the gate.
@@ -531,7 +531,7 @@ no idle burn).
 
 (k) The decode reading survives chunked-prefill stagger. Check: 56
 tests pass, including `test_run_cell_survives_staggered_prefill_waves`
-(a fake engine whose wave 2 prefills one step late — the new code
+(a fake engine whose wave 2 prefills one step late - the new code
 reads the full batch, the old code trips the gate; verified by
 mutation), `test_sample_decode_window_fails_loud_on_finish_before_prefill`,
 and `test_prefill_chunks_and_cell_decode_tokens`; the rung-0 dry run
@@ -542,12 +542,12 @@ cells passed, but the batch-16 cell died: "decode reading (66 blocks)
 is smaller than the prefill reading (1040 blocks)". Root cause: with
 chunked prefill, 16x1024 prompt tokens split into 2 prefill waves that
 finished (freeing their blocks) on different decode steps, while the
-decode reading was taken on the all-finished step — a design that only
+decode reading was taken on the all-finished step - a design that only
 works when every request finishes on the same step. Fix, three parts:
 (1) the decode reading is frozen at the last post-step with every
 request still alive (which is what the docstring always promised);
 (2) per-cell decode length is max(default, prefill_chunks + 1) so the
-first wave cannot finish before the last wave's prefill completes —
+first wave cannot finish before the last wave's prefill completes -
 such a last all-alive step is then guaranteed to exist; the
 regression uses measured live token counts, so the extra decode
 tokens only move the x-axis, never the slope; (3) `max_num_batched_tokens`
@@ -560,7 +560,7 @@ idle burn).
 
 Follow-up (campaign kv-scaling-20260928i, attempt 8): fix (k)'s
 (chunks + 1) decode rule assumed a wave lives until max_tokens,
-but the fixed prompts make the model emit EOS after ~4 tokens —
+but the fixed prompts make the model emit EOS after ~4 tokens -
 the waves ended at EOS, not at max_tokens. At s2048 b16 (4
 prefill chunks) wave 0 finished on its 4th decode step, before
 wave 3's prefill completed, so no post-decode step ever had every
@@ -573,7 +573,7 @@ decode length is exactly the fixed token count for every request.
 This is a methodology improvement, not a compromise: the study
 measures KV bytes per live token, EOS timing is irrelevant to
 that quantity, and this TRD already specified a small fixed token
-count — ignore_eos makes it exactly fixed. Wave analysis: with
+count - ignore_eos makes it exactly fixed. Wave analysis: with
 EOS disabled every request survives to max_tokens, so the
 last-all-alive freeze always lands on a full-batch step; the
 (chunks + 1) rule is kept as defense in depth. Red-green tests: a
@@ -591,7 +591,7 @@ chunks, decode_tokens 4 -> 5" in the run log, then "no
 post-decode step had every request still alive"). Root cause,
 measured from the exhibit: the 4 chunked-prefill waves stagger so
 widely that wave 1's requests finished all 5 decode tokens before
-wave 4's requests each generated one token — the wave spacing
+wave 4's requests each generated one token - the wave spacing
 exceeds 5 engine steps, while (chunks + 1) assumed one step per
 wave. The engine interleaves later prefill chunks with earlier
 waves' decodes inside the per-step token budget, so chunks do not
@@ -599,7 +599,7 @@ complete one per step. Fix: the per-cell decode window is sized
 from the MEASURED spacing (5 steps) with a 6x margin = 30 tokens,
 independent of the chunk count (`EXTENDED_DECODE_TOKENS` in
 measure.py). This is principled, not a fudge: decode length is
-arbitrary to the measured quantity (KV bytes per live token) — a
+arbitrary to the measured quantity (KV bytes per live token) - a
 longer window only widens the all-alive overlap, it cannot bias
 the bytes/token reading; the regression uses measured live token
 counts, so the extra tokens only move the x-axis, never the slope.
@@ -618,10 +618,10 @@ project venv.
 Attempt-11 outcome (campaign `kv-scaling-20260929l`, 2026-09-29):
 24 of 30 grid cells green (s1024/s2048/s4096/s8192 b1-b16, s16384
 b1-b8), then the prefill-timing guard refused at s16384 b16 (32
-chunks) — firing its loud, correct error, exactly as the
+chunks) - firing its loud, correct error, exactly as the
 guard-reorder intended. Lesson measured from the run: the 30-token
 window held through 16-chunk stagger (s8192 b16, s16384 b8 green)
-and failed at 32 chunks — wave spacing scales with chunk count,
+and failed at 32 chunks - wave spacing scales with chunk count,
 a flat window cannot. The method as built reads every cell up to
 16 prefill chunks. The 24 green cells all sit within 2% of the
 12,288 B/token config-derived theory; same-token-count
@@ -713,7 +713,7 @@ report is the fallback artifact.
 - **transformers' to_dict() is equally lossy (killed campaign
   kv-scaling-20260928c's smoke cell).** The first fix for the
   torch_dtype KeyError fell through to
-  `AutoConfig.from_pretrained(...).to_dict()` — but transformers'
+  `AutoConfig.from_pretrained(...).to_dict()` - but transformers'
   own `to_dict()` drops `torch_dtype` on the versions vLLM 0.11.2
   pulls in, so the fallback raised the same bare KeyError. Real fix:
   `_resolve_theory` now takes the element width from the engine's
@@ -727,14 +727,14 @@ report is the fallback artifact.
 - **Block pool unreachable: SyncMPClient has no scheduler (killed
   campaign kv-scaling-20260928d's smoke cell).** The probe path
   `engine_core.scheduler.kv_cache_manager.block_pool` was "verified
-  against the 0.11.2 source" — but the source reading missed that
+  against the 0.11.2 source" - but the source reading missed that
   `LLMEngine.engine_core` is an `EngineCoreClient`, not the
   `EngineCore`: with vLLM's default `VLLM_ENABLE_V1_MULTIPROCESSING=1`
   it is a `SyncMPClient` whose scheduler lives in the EngineCore
   subprocess, unreachable from the parent by attribute access. Fix:
   the bootstrap exports `VLLM_ENABLE_V1_MULTIPROCESSING=0` (and
   `_run_vllm_sweep_impl` setdefaults it), so the engine uses
-  `InprocClient` — the real `EngineCore` in-process, with the
+  `InprocClient` - the real `EngineCore` in-process, with the
   documented layout
   `engine_core.engine_core.scheduler.kv_cache_manager.block_pool`,
   which the probe now tries first. Verified against the actual
@@ -751,7 +751,7 @@ report is the fallback artifact.
 - **Tile-boundary token merge in prompt construction (killed campaign
   kv-scaling-20260928e's smoke cell).** `build_exact_length_prompts`
   tiled token ids, truncated to `seq_len`, decoded, and re-encoded to
-  verify — and the verify failed: 1023 vs 1024. Root cause, reproduced
+  verify - and the verify failed: 1023 vs 1024. Root cause, reproduced
   against the real Qwen2.5-0.5B-Instruct tokenizer at the pinned
   revision: a tile boundary falls between the trailing " " of one tile
   and the leading "The" of the next, and the re-encode merges them into
@@ -768,7 +768,7 @@ report is the fallback artifact.
 - **Regression fit on a single smoke cell (killed campaign
   kv-scaling-20260928f's smoke cell).** `run_vllm_sweep` ended with an
   unconditional `fit_bytes_per_token(cells...)`, and the smoke grid is
-  one cell — "need at least 2 points for a fit, got 1". This was the
+  one cell - "need at least 2 points for a fit, got 1". This was the
   first campaign to get past cell measurement, so the first to reach
   that line; every earlier campaign died before it. A slope on one
   point is mathematically undefined, and the smoke's real gates are the
@@ -777,7 +777,7 @@ report is the fallback artifact.
   validation, the knee, and the campaign/summary JSON for single-cell
   runs (the cell JSON is already on disk; the grid resumes it). Two
   regression tests pin both branches. Lesson: the smoke path must be
-  able to pass with exactly one cell — "the regression code runs on the
+  able to pass with exactly one cell - "the regression code runs on the
   single cell without crashing" (TRD §11) means the code handles one
   cell, not that one cell yields a slope.
 - **Prefix caching shares KV blocks across identical batch prompts
@@ -786,7 +786,7 @@ report is the fallback artifact.
   (`prompts=[prompt] * batch_size`), and vLLM 0.11.2 defaults
   `enable_prefix_caching=True`. The grid's first batch-2 cell died at
   the block gate: "block accounting reports 1056 token-slots below
-  the 2050 live tokens" — the second request's prompt was a
+  the 2050 live tokens" - the second request's prompt was a
   prefix-cache hit, so 66 blocks held 2050 live tokens. The smoke
   (batch 1) could never see this. Beyond the gate, sharing would
   silently undercount KV bytes in the regression, so this is a
@@ -796,7 +796,7 @@ report is the fallback artifact.
   `vllm/engine/arg_utils.py`, forwarded through `LLM.__init__`'s
   `**kwargs`; explicit False is honored, only None takes the
   default). Lesson: a block-accounting gate assumes one token-slot
-  per live token — any engine feature that shares KV (prefix
+  per live token - any engine feature that shares KV (prefix
   caching, and in future KV-sharing across requests) breaks the
   assumption, so the sweep must pin the engine config that keeps it
   true.
@@ -806,18 +806,18 @@ report is the fallback artifact.
   chunks; wave 1 finished (freeing its blocks) a decode step before
   wave 2. The decode reading was taken on the all-finished step, which
   only represents the full batch when every request finishes on the
-  same step — it read 66 blocks against a 1040-block prefill reading
+  same step - it read 66 blocks against a 1040-block prefill reading
   and the gate fired. The smoke and batch-2/4/8 cells could never see
   this (single-chunk prefills). Fix: (1) freeze the decode reading at
-  the last post-step with every request still alive — the docstring's
+  the last post-step with every request still alive - the docstring's
   original promise; (2) per-cell decode length
   `max(default_decode_tokens, prefill_chunks + 1)` so the first wave
   cannot finish before the last wave's prefill completes, guaranteeing
   such a step exists (the regression uses measured live counts, so the
   extra tokens move only the x-axis); (3) pin `max_num_batched_tokens`
   in `_llm_kwargs` and verify it from the engine, since the chunk math
-  depends on it. Two loud guards — a finish before whole-batch
-  prefill completes, and no all-alive post-decode step — refuse to
+  depends on it. Two loud guards - a finish before whole-batch
+  prefill completes, and no all-alive post-decode step - refuse to
   sweep rather than measure a partial batch. Lesson: any reading that
   compares two moments in a sample must name the live set each moment
   requires; "the decode state" is meaningless once requests have
@@ -828,7 +828,7 @@ report is the fallback artifact.
   max_tokens, but the fixed prompts make Qwen2.5-0.5B-Instruct emit
   EOS after ~4 tokens: the waves ended at EOS, not at max_tokens.
   At s2048 b16 (4 prefill chunks) wave 0 finished on its 4th decode
-  step, before wave 3's prefill completed — no post-decode step ever
+  step, before wave 3's prefill completed - no post-decode step ever
   had every request alive, and the "no all-alive step" guard fired
   instead of measuring a partial batch (the prefill reading in the
   exhibit shows 24,609 live tokens vs 32,768 submitted: wave 0's
@@ -839,7 +839,7 @@ report is the fallback artifact.
   compromise: the study measures KV bytes per live token, EOS timing
   is irrelevant to that quantity, and the TRD already specified a
   small fixed token count. Lesson: "the decode length" is not one
-  thing — max_tokens bounds the plan, EOS ends the reality; pin both
+  thing - max_tokens bounds the plan, EOS ends the reality; pin both
   or the staggered-wave analysis is about the wrong lifetime.
 - **Cost overrun.** The only cost risk that matters is an idle
   pod, not the cells. Expected spend is under $1 (about 44
