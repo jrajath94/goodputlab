@@ -1,10 +1,10 @@
-# Context repair probe — 2026-07-17 — RAG/agentic overflow fixed
+# Context repair probe - 2026-07-17 - RAG/agentic overflow fixed
 
 The 72-cell (2026-07-14) and v1.1 (2026-07-16) sweeps lost every RAG
 cell to HTTP 400 context overflow (`--max-model-len` 4096, then 16384).
 The local prompt preflight measured the RAG worst case at 18,539
-prompt+output tokens; this probe verifies the fix — vLLM launched with
-`--max-model-len 20480` — with exactly 2 cheap cells before any larger
+prompt+output tokens; this probe verifies the fix - vLLM launched with
+`--max-model-len 20480` - with exactly 2 cheap cells before any larger
 spend.
 
 ## Results
