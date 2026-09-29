@@ -1,4 +1,4 @@
-# RunPod v1.1 Sweep — 2026-07-16
+# RunPod v1.1 Sweep - 2026-07-16
 
 54-cell sweep on real H100 SXM (Qwen2.5-7B-Instruct), single-pod serving.
 
@@ -64,7 +64,7 @@ end-to-end for the first time.
 ## Honest finding: `disagg` cells are label-only on single pod
 
 The 18 `disagg` cells in this directory were generated against the
-**same single vLLM process** as the `colocated` and `chunked` cells —
+**same single vLLM process** as the `colocated` and `chunked` cells -
 all three topology labels ride on one `--enable-chunked-prefill`
 server. The intent was to start a second vLLM process with
 `--kv-transfer-config '{"kv_connector":"NixlConnector","kv_role":"kv_producer"}'`
@@ -72,13 +72,13 @@ plus a paired consumer, route through `scripts/disagg_proxy.py`, and
 re-run the `disagg` cells. That attempt failed twice on the single
 pod:
 
-1. **GPU OOM at `--gpu-memory-utilization 0.45`** — the second
+1. **GPU OOM at `--gpu-memory-utilization 0.45`** - the second
    process needs ~28 GiB just for the model + activations, and the
    KV-cache headroom calculation reported `(0.88 GiB KV cache
    needed, 0.61 GiB available)` after the first process held the
    allocator. Even with `--enforce-eager` and `--max-model-len 8192`
    the second process could not fit.
-2. **ZMQ port collision on `tcp://localhost:5600`** — the second
+2. **ZMQ port collision on `tcp://localhost:5600`** - the second
    process's engine core tried to bind the same ZMQ RPC socket that
    the first process already held. vLLM 0.11.x does not auto-pick a
    free port for the engine-core RPC; both processes default to
@@ -110,11 +110,11 @@ the topology label is misleading, and that is documented here.
 
 ## Topologies NOT attempted this sweep
 
-- **`disagg_tier`** — same single-pod limitation as `disagg`; LMCache
+- **`disagg_tier`** - same single-pod limitation as `disagg`; LMCache
   gRPC wire is deferred to v1.1.1 (the `MockLmcacheClient` in
   `kv/lmcache_client.py` is a `Protocol`, so the swap is local when
   the wire is ready).
-- **Multi-node P/D** — single-pod ZMQ collision blocked this in
+- **Multi-node P/D** - single-pod ZMQ collision blocked this in
   2026-07-16; needs a second pod.
 
 ## Combined reconciled-cell count (all sweeps, honest)
@@ -128,7 +128,7 @@ the topology label is misleading, and that is documented here.
 | **Total** | **74/132 attempted** (56 %) | 4/4 topologies touched | **$3.59** |
 
 74 of the **full 216-cell sweep** = 34 %. The remaining 142 cells
-are GPU-blocked, not algorithmically blocked — the bench pipeline
+are GPU-blocked, not algorithmically blocked - the bench pipeline
 runs end-to-end on every topology in scope; the gaps are pod-hours
 that the project's $100 GPU budget cap has not authorised.
 
