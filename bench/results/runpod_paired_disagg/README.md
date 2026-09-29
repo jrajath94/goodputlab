@@ -1,4 +1,4 @@
-# Paired disagg probe — 2026-07-17 — FIRST TRUE P/D EVIDENCE
+# Paired disagg probe - 2026-07-17 - FIRST TRUE P/D EVIDENCE
 
 First run in this repository where disagg-labeled cells were served by
 **separate prefill and decode vLLM processes with real NIXL KV transfer**.
@@ -9,11 +9,11 @@ Every prior disagg row (Run 1, runpod_full, runpod_v11) was label-only
 
 - **colocated**: one vLLM 0.11.2 process on `:8000`,
   `--no-enable-chunked-prefill`, `--max-model-len 20480`.
-- **disagg**: two vLLM 0.11.2 processes sharing the one H100 —
+- **disagg**: two vLLM 0.11.2 processes sharing the one H100 -
   prefill `:8100` (`kv_role=kv_producer`) + decode `:8200`
   (`kv_role=kv_consumer`), both `--gpu-memory-utilization 0.42`,
   `--max-model-len 8192`, `kv_connector=NixlConnector`, distinct
-  `VLLM_NIXL_SIDE_CHANNEL_PORT` (5601/5602) — this avoids the
+  `VLLM_NIXL_SIDE_CHANNEL_PORT` (5601/5602) - this avoids the
   2026-07-16 single-pod ZMQ collision. Front door:
   `scripts/disagg_proxy.py` on `:9100` speaking the vLLM
   `kv_transfer_params` protocol (commit `284ef6b`).
@@ -43,12 +43,12 @@ Captured in `nixl_before.txt` / `nixl_after.txt`:
 1. **At 4 rps, true P/D costs +25 % TTFT vs colocated** (919 vs 735 ms)
    on a single shared GPU: the proxy hop plus the NIXL handshake are pure
    overhead when one process could have served the request. ITL is at
-   parity (7.8 vs 8.4 ms) — decode is unaffected once KV lands.
+   parity (7.8 vs 8.4 ms) - decode is unaffected once KV lands.
 2. **At 16 rps, single-GPU P/D collapses** (73 % success, 9 s mean TTFT,
    client timeouts). NIXL itself did not fail (0 failed transfers,
    16.9 ms mean); the two processes time-slice one H100's SMs, so
    prefill and decode contend instead of pipelining. Disaggregation
-   needs dedicated hardware per stage — on shared hardware it is
+   needs dedicated hardware per stage - on shared hardware it is
    strictly worse than colocation at load. This is the core
    "when disaggregation does NOT pay" datapoint for `docs/REPORT.md`.
 3. The unreconciled 16 rps disagg cell is retained on disk
