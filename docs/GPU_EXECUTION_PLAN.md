@@ -27,7 +27,7 @@ Status as of 2026-07-15:
 
 ## Remaining GPU work
 
-> **Status update (2026-07-17):** §1's blocker is closed — the 2-cell
+> **Status update (2026-07-17):** §1's blocker is closed - the 2-cell
 > context-repair probe reconciled RAG + agentic at `--max-model-len
 > 20480` with zero HTTP 400s. §2 is closed for the single-GPU case —
 > `bench/results/runpod_paired_disagg/` holds the first NIXL-backed
@@ -54,7 +54,7 @@ Required actions:
 3. Re-run pending cells only (resume is the runner default); keep the
    reconcile gate; do not count unreconciled cells as measured.
 
-Suggested command path (staged — smoke first, then context repair):
+Suggested command path (staged - smoke first, then context repair):
 
 ```bash
 export RUNPOD_VLLM_BASE_URL=http://127.0.0.1:8000/v1
