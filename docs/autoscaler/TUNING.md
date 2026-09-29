@@ -89,15 +89,15 @@ without reintroducing integrator windup.
 
 Property tests in `tests/test_autoscaler.py`:
 
-- `test_min_dwell_blocks_rapid_flip_back` — within 30 s of a flip, a
+- `test_min_dwell_blocks_rapid_flip_back` - within 30 s of a flip, a
   reverse-flip is suppressed.
-- `test_min_dwell_fires_after_window_elapses` — at 119 s still blocked;
+- `test_min_dwell_fires_after_window_elapses` - at 119 s still blocked;
   at 121 s fires.
-- `test_min_dwell_no_flip_means_no_cooldown` — 5 stable ticks do not
+- `test_min_dwell_no_flip_means_no_cooldown` - 5 stable ticks do not
   start a dwell window; the next flip fires freely.
-- `test_min_dwell_zero_disables_feature` — `min_dwell_s=0` is the
+- `test_min_dwell_zero_disables_feature` - `min_dwell_s=0` is the
   back-compat default for the existing test suite.
-- `test_min_dwell_property_alternating_queue` — under 600 s of
+- `test_min_dwell_property_alternating_queue` - under 600 s of
   alternating queue depth (10 s tick), ≤ 6 flips total (vs 60 without
   dwell).
 
@@ -127,15 +127,15 @@ step_size=1
 
 These are conservative defaults:
 
-- **`ki=0`** — no integral action. The drain protocol already prevents
+- **`ki=0`** - no integral action. The drain protocol already prevents
   the "queue stays high, scale-up races forever" failure mode that
   integral action normally guards against. Pure proportional keeps the
   controller interpretable: `error → scale-up by ⌊error / target⌋` over
   the next few ticks.
-- **`kd=0`** — derivative amplifies measurement noise in `queue_depth`,
+- **`kd=0`** - derivative amplifies measurement noise in `queue_depth`,
   which is a coarse scrape of `vllm:num_requests_running`. Add `kd`
   only after wiring a low-pass filter on the input.
-- **`kp=1.0`** — with `output_max=10`, this gives a 1:1 error-to-output
+- **`kp=1.0`** - with `output_max=10`, this gives a 1:1 error-to-output
   mapping up to 10. A queue depth 30 above target on a 4-replica pool
   yields `delta = +1` per tick until the floor/ceiling is hit.
 
@@ -159,17 +159,17 @@ These are conservative defaults:
 
 ## Property tests already shipped
 
-- `test_drain_blocks_scale_down_under_sustained_inflight` — 50-tick
+- `test_drain_blocks_scale_down_under_sustained_inflight` - 50-tick
   random walk, no scale-down with in_flight>0.
-- `test_drain_fires_immediately_when_inflight_drops_to_zero` — drain
+- `test_drain_fires_immediately_when_inflight_drops_to_zero` - drain
   fires the first tick in_flight hits 0.
-- `test_autoscaler_caps_at_max_replicas` — clamp upper.
-- `test_autoscaler_floor_at_min_replicas` — clamp lower.
-- `test_min_dwell_blocks_rapid_flip_back` — within dwell, flip suppressed.
-- `test_min_dwell_fires_after_window_elapses` — boundary fires.
-- `test_min_dwell_no_flip_means_no_cooldown` — stable ticks don't start window.
-- `test_min_dwell_zero_disables_feature` — back-compat default.
-- `test_min_dwell_property_alternating_queue` — bounded oscillation count.
+- `test_autoscaler_caps_at_max_replicas` - clamp upper.
+- `test_autoscaler_floor_at_min_replicas` - clamp lower.
+- `test_min_dwell_blocks_rapid_flip_back` - within dwell, flip suppressed.
+- `test_min_dwell_fires_after_window_elapses` - boundary fires.
+- `test_min_dwell_no_flip_means_no_cooldown` - stable ticks don't start window.
+- `test_min_dwell_zero_disables_feature` - back-compat default.
+- `test_min_dwell_property_alternating_queue` - bounded oscillation count.
 
 These together assert the v0.1.1 invariants.
 
@@ -185,9 +185,9 @@ These together assert the v0.1.1 invariants.
 
 ## References
 
-- `control/autoscaler.py` — implementation, 122 lines.
-- `control/pid.py` — discrete-time PID with anti-windup.
-- `control/pool.py` — `Pool` enum and `PoolState` model.
-- `tests/test_autoscaler.py` — 15 tests, including 2 drain property
+- `control/autoscaler.py` - implementation, 122 lines.
+- `control/pid.py` - discrete-time PID with anti-windup.
+- `control/pool.py` - `Pool` enum and `PoolState` model.
+- `tests/test_autoscaler.py` - 15 tests, including 2 drain property
   tests.
-- `CHANGELOG.md` §0.1 — release-scope policy and the v1.1 deferral.
+- `CHANGELOG.md` §0.1 - release-scope policy and the v1.1 deferral.
