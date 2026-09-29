@@ -34,6 +34,8 @@ A reconciliation gate compares load-generator telemetry against vLLM's
 
 ## Headline results
 
+**Run 2 (2026-09-29, KV-cache scaling, Qwen2.5-0.5B-Instruct on vLLM 0.11.2, RTX 4090).** 24 of 30 grid cells measured green (seq_len 1024-16384, batch 1-16): measured KV bytes per live token 12,295.8 (+0.06% vs the 12,288 B/token theory, R2 1.0000). Knee T* at 131,241 total context tokens, where KV bytes reach 61% of allocated GPU RAM. Full campaign in `docs/kv_scaling/RESULTS.md`; 106 regression tests.
+
 **Run 1 (2026-07-09, RunPod 1x H100 SXM 80 GB, Qwen2.5-7B-Instruct, commit
 `c57ee66`).** Single-process topology emulation: the router made the pool
 decision, so the disagg rows carry no real prefill-to-decode transfer cost.
