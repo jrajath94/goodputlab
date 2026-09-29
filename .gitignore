@@ -35,6 +35,10 @@ bench/results/*
 !bench/results/runpod_paired_disagg/
 !bench/results/runpod_v12/
 !bench/results/autoscaler_live/
+!bench/results/kv_scaling/
+# kv_scaling: only real campaigns are committed; the rung-0 fake dry-run
+# output stays ignored (regenerable via --dry-run, never a claim).
+bench/results/kv_scaling/kv-scaling
 # REPRO-03: bench results may also be committed as parquet. The blanket
 # *.parquet blocklist was removed (see above) so parquet directly under
 # any of the whitelisted bench subdirs is committable.

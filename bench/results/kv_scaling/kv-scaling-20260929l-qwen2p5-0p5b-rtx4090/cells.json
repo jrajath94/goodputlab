@@ -1,0 +1,690 @@
+{
+  "campaign_id": "kv-scaling-20260929l-qwen2p5-0p5b-rtx4090",
+  "model_revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+  "cells": [
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 1024,
+      "batch_size": 1,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        13172736,
+        13172736,
+        13172736,
+        13172736,
+        13172736
+      ],
+      "kv_bytes_prefill_samples": [
+        12779520,
+        12779520,
+        12779520,
+        12779520,
+        12779520
+      ],
+      "total_tokens": 1053,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 13172736.0,
+      "p95_bytes": 13172736.0,
+      "measured_bytes_per_token": 12509.720797720798
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 1024,
+      "batch_size": 2,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        26148864,
+        26148864,
+        26148864,
+        26148864,
+        26148864
+      ],
+      "kv_bytes_prefill_samples": [
+        25362432,
+        25362432,
+        25362432,
+        25362432,
+        25362432
+      ],
+      "total_tokens": 2106,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 26148864.0,
+      "p95_bytes": 26148864.0,
+      "measured_bytes_per_token": 12416.364672364673
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 1024,
+      "batch_size": 4,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        52101120,
+        52101120,
+        52101120,
+        52101120,
+        52101120
+      ],
+      "kv_bytes_prefill_samples": [
+        50528256,
+        50528256,
+        50528256,
+        50528256,
+        50528256
+      ],
+      "total_tokens": 4212,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 52101120.0,
+      "p95_bytes": 52101120.0,
+      "measured_bytes_per_token": 12369.686609686609
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 1024,
+      "batch_size": 8,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        104005632,
+        104005632,
+        104005632,
+        104005632,
+        104005632
+      ],
+      "kv_bytes_prefill_samples": [
+        100859904,
+        100859904,
+        100859904,
+        100859904,
+        100859904
+      ],
+      "total_tokens": 8424,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 104005632.0,
+      "p95_bytes": 104005632.0,
+      "measured_bytes_per_token": 12346.347578347579
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 1024,
+      "batch_size": 16,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        207814656,
+        207814656,
+        207814656,
+        207814656,
+        207814656
+      ],
+      "kv_bytes_prefill_samples": [
+        204472320,
+        204472320,
+        204472320,
+        204472320,
+        204472320
+      ],
+      "total_tokens": 16839,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 207814656.0,
+      "p95_bytes": 207814656.0,
+      "measured_bytes_per_token": 12341.27062177089
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 2048,
+      "batch_size": 1,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        25755648,
+        25755648,
+        25755648,
+        25755648,
+        25755648
+      ],
+      "kv_bytes_prefill_samples": [
+        25362432,
+        25362432,
+        25362432,
+        25362432,
+        25362432
+      ],
+      "total_tokens": 2077,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 25755648.0,
+      "p95_bytes": 25755648.0,
+      "measured_bytes_per_token": 12400.408281174772
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 2048,
+      "batch_size": 2,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        51314688,
+        51314688,
+        51314688,
+        51314688,
+        51314688
+      ],
+      "kv_bytes_prefill_samples": [
+        50528256,
+        50528256,
+        50528256,
+        50528256,
+        50528256
+      ],
+      "total_tokens": 4154,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 51314688.0,
+      "p95_bytes": 51314688.0,
+      "measured_bytes_per_token": 12353.078478574867
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 2048,
+      "batch_size": 4,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        102432768,
+        102432768,
+        102432768,
+        102432768,
+        102432768
+      ],
+      "kv_bytes_prefill_samples": [
+        100859904,
+        100859904,
+        100859904,
+        100859904,
+        100859904
+      ],
+      "total_tokens": 8308,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 102432768.0,
+      "p95_bytes": 102432768.0,
+      "measured_bytes_per_token": 12329.413577274916
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 2048,
+      "batch_size": 8,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        204668928,
+        204668928,
+        204668928,
+        204668928,
+        204668928
+      ],
+      "kv_bytes_prefill_samples": [
+        202899456,
+        202899456,
+        202899456,
+        202899456,
+        202899456
+      ],
+      "total_tokens": 16611,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 204668928.0,
+      "p95_bytes": 204668928.0,
+      "measured_bytes_per_token": 12321.288784540366
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 2048,
+      "batch_size": 16,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        409141248,
+        409141248,
+        409141248,
+        409141248,
+        409141248
+      ],
+      "kv_bytes_prefill_samples": [
+        405798912,
+        405798912,
+        405798912,
+        405798912,
+        405798912
+      ],
+      "total_tokens": 33205,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 409141248.0,
+      "p95_bytes": 409141248.0,
+      "measured_bytes_per_token": 12321.675892184912
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 4096,
+      "batch_size": 1,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        50921472,
+        50921472,
+        50921472,
+        50921472,
+        50921472
+      ],
+      "kv_bytes_prefill_samples": [
+        50528256,
+        50528256,
+        50528256,
+        50528256,
+        50528256
+      ],
+      "total_tokens": 4125,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 50921472.0,
+      "p95_bytes": 50921472.0,
+      "measured_bytes_per_token": 12344.599272727273
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 4096,
+      "batch_size": 2,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        101646336,
+        101646336,
+        101646336,
+        101646336,
+        101646336
+      ],
+      "kv_bytes_prefill_samples": [
+        100859904,
+        100859904,
+        100859904,
+        100859904,
+        100859904
+      ],
+      "total_tokens": 8250,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 101646336.0,
+      "p95_bytes": 101646336.0,
+      "measured_bytes_per_token": 12320.768
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 4096,
+      "batch_size": 4,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        203096064,
+        203096064,
+        203096064,
+        203096064,
+        203096064
+      ],
+      "kv_bytes_prefill_samples": [
+        202113024,
+        202113024,
+        202113024,
+        202113024,
+        202113024
+      ],
+      "total_tokens": 16497,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 203096064.0,
+      "p95_bytes": 203096064.0,
+      "measured_bytes_per_token": 12311.090743771594
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 4096,
+      "batch_size": 8,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        405995520,
+        405995520,
+        405995520,
+        405995520,
+        405995520
+      ],
+      "kv_bytes_prefill_samples": [
+        404226048,
+        404226048,
+        404226048,
+        404226048,
+        404226048
+      ],
+      "total_tokens": 32985,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 405995520.0,
+      "p95_bytes": 405995520.0,
+      "measured_bytes_per_token": 12308.489313324239
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 4096,
+      "batch_size": 16,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        811794432,
+        811794432,
+        811794432,
+        811794432,
+        811794432
+      ],
+      "kv_bytes_prefill_samples": [
+        808452096,
+        808452096,
+        808452096,
+        808452096,
+        808452096
+      ],
+      "total_tokens": 65937,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 811794432.0,
+      "p95_bytes": 811794432.0,
+      "measured_bytes_per_token": 12311.667682788117
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 8192,
+      "batch_size": 1,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        101253120,
+        101253120,
+        101253120,
+        101253120,
+        101253120
+      ],
+      "kv_bytes_prefill_samples": [
+        100859904,
+        100859904,
+        100859904,
+        100859904,
+        100859904
+      ],
+      "total_tokens": 8221,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 101253120.0,
+      "p95_bytes": 101253120.0,
+      "measured_bytes_per_token": 12316.399464785305
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 8192,
+      "batch_size": 2,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        202309632,
+        202309632,
+        202309632,
+        202309632,
+        202309632
+      ],
+      "kv_bytes_prefill_samples": [
+        201719808,
+        201719808,
+        201719808,
+        201719808,
+        201719808
+      ],
+      "total_tokens": 16440,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 202309632.0,
+      "p95_bytes": 202309632.0,
+      "measured_bytes_per_token": 12305.938686131387
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 8192,
+      "batch_size": 4,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        404422656,
+        404422656,
+        404422656,
+        404422656,
+        404422656
+      ],
+      "kv_bytes_prefill_samples": [
+        403439616,
+        403439616,
+        403439616,
+        403439616,
+        403439616
+      ],
+      "total_tokens": 32875,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 404422656.0,
+      "p95_bytes": 404422656.0,
+      "measured_bytes_per_token": 12301.829840304183
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 8192,
+      "batch_size": 8,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        808648704,
+        808648704,
+        808648704,
+        808648704,
+        808648704
+      ],
+      "kv_bytes_prefill_samples": [
+        806879232,
+        806879232,
+        806879232,
+        806879232,
+        806879232
+      ],
+      "total_tokens": 65733,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 808648704.0,
+      "p95_bytes": 808648704.0,
+      "measured_bytes_per_token": 12302.020355072795
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 8192,
+      "batch_size": 16,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        1616117760,
+        1616117760,
+        1616117760,
+        1616117760,
+        1616117760
+      ],
+      "kv_bytes_prefill_samples": [
+        1613758464,
+        1613758464,
+        1613758464,
+        1613758464,
+        1613758464
+      ],
+      "total_tokens": 131401,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 1616117760.0,
+      "p95_bytes": 1616117760.0,
+      "measured_bytes_per_token": 12299.128317136096
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 16384,
+      "batch_size": 1,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        201916416,
+        201916416,
+        201916416,
+        201916416,
+        201916416
+      ],
+      "kv_bytes_prefill_samples": [
+        201523200,
+        201523200,
+        201523200,
+        201523200,
+        201523200
+      ],
+      "total_tokens": 16413,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 201916416.0,
+      "p95_bytes": 201916416.0,
+      "measured_bytes_per_token": 12302.224821787608
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 16384,
+      "batch_size": 2,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        403636224,
+        403636224,
+        403636224,
+        403636224,
+        403636224
+      ],
+      "kv_bytes_prefill_samples": [
+        403046400,
+        403046400,
+        403046400,
+        403046400,
+        403046400
+      ],
+      "total_tokens": 32823,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 403636224.0,
+      "p95_bytes": 403636224.0,
+      "measured_bytes_per_token": 12297.35929074125
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 16384,
+      "batch_size": 4,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        807075840,
+        807075840,
+        807075840,
+        807075840,
+        807075840
+      ],
+      "kv_bytes_prefill_samples": [
+        806092800,
+        806092800,
+        806092800,
+        806092800,
+        806092800
+      ],
+      "total_tokens": 65637,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 807075840.0,
+      "p95_bytes": 807075840.0,
+      "measured_bytes_per_token": 12296.050093697153
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "vllm_version": "0.11.2",
+      "seq_len": 16384,
+      "batch_size": 8,
+      "n_samples": 5,
+      "kv_bytes_used_samples": [
+        1613561856,
+        1613561856,
+        1613561856,
+        1613561856,
+        1613561856
+      ],
+      "kv_bytes_prefill_samples": [
+        1612185600,
+        1612185600,
+        1612185600,
+        1612185600,
+        1612185600
+      ],
+      "total_tokens": 131241,
+      "baseline_bytes": 1021813248,
+      "method": "vllm-block-accounting; ignore_eos=True; decode_window=30; transcribed from bootstrap.log exhibit",
+      "p50_bytes": 1613561856.0,
+      "p95_bytes": 1613561856.0,
+      "measured_bytes_per_token": 12294.647678697967
+    }
+  ],
+  "theory_bytes_per_token": 12288,
+  "regression": {
+    "slope_bpt": 12295.783896251429,
+    "intercept_bytes": 314053.5728558302,
+    "r2": 0.9999996593909044,
+    "residual_se": 271921.34519543865
+  },
+  "knee": {
+    "total_tokens": 131241,
+    "kv_share": 0.612270281202444,
+    "batch_size": 8
+  }
+}
