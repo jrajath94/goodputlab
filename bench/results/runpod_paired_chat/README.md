@@ -1,9 +1,9 @@
-# Paired chat probe — 2026-07-17 — first real colocated-vs-chunked pair
+# Paired chat probe - 2026-07-17 - first real colocated-vs-chunked pair
 
 Prior sweeps served "colocated" and "chunked" from one server config,
 so the labels compared nothing. This probe restarts vLLM between
-passes — `--no-enable-chunked-prefill` for colocated cells,
-`--enable-chunked-prefill` for chunked cells — using the runner's
+passes - `--no-enable-chunked-prefill` for colocated cells,
+`--enable-chunked-prefill` for chunked cells - using the runner's
 `--topologies` filter, so each label maps to a genuinely different
 server configuration.
 
@@ -17,7 +17,7 @@ server configuration.
 | chunked @ 16 rps | 1.00 | 648 ms | 963 ms | 8.8 ms | yes |
 
 At these light loads and short chat prompts the two configs are within
-noise of each other (n=12 measured requests per cell) — consistent
+noise of each other (n=12 measured requests per cell) - consistent
 with Run 1's "chunked is not automatically faster" finding. Chunked
 prefill's payoff regime (long-prompt interference at load) is what the
 RAG mix at higher rates would probe.
