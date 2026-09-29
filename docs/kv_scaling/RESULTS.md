@@ -174,8 +174,15 @@ committed code and TRD §9-§10.
   `7ae557604adf67be50417f59c2c2f167def9a775`, `max_model_len=32768`
 - Cells attempted: 25 (24 green, 1 refused); s32768 row unattempted
 - Wall time: ~15 minutes pod life; cost ~$0.19
-- Series total: ~$3.1 across 12 campaigns (largest single item the
-  $1.18 idle pod in campaign 1, before the monitor was hardened)
+- Series total: about $4 across 12 campaigns, under the $5 PRD budget —
+  itemized: $1.18 (campaign 1, idle pod before the monitor was
+  hardened) + $0.17 + $0.10 x 5 (campaigns 2-7, smoke/gate failures,
+  each terminated by the monitor) + ~$0.45 (campaign 8, estimated
+  grid runtime) + ~$1.35 (campaign 9, estimated: productive grid
+  time plus 50 min of dead polling before termination) + $0.25
+  (campaign 10) + $0.14 (campaign 11) + $0.19 (this campaign).
+  Campaigns 8-9 are estimated from monitor logs; the rest are
+  documented in TRD §9-§10.
 
 ## Exhibits
 

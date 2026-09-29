@@ -70,8 +70,9 @@ proves that craft.
    s32768 row unattempted. The 6 excluded cells are documented, not
    estimated.
 5. Total GPU spend under $5 with a run log in the format of
-   `docs/GPU_COST_OPTIMIZATION.md`. Status: MEASURED — about $3.1
-   across 12 campaigns (run log in `docs/kv_scaling/RESULTS.md`).
+   `docs/GPU_COST_OPTIMIZATION.md`. Status: MEASURED — about $4
+   across 12 campaigns, itemized in `docs/kv_scaling/RESULTS.md`
+   (run log; campaigns 8-9 estimated from monitor logs).
 6. The headline claim in §Goals-4 may appear in the README only after
    criteria 1-5 hold. Status: NOT USED — criterion 4 holds only in
    bounded form, so the README carries no unqualified headline. The
