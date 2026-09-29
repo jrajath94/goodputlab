@@ -9,7 +9,7 @@ JSON that imports cleanly and references every metric declared by
 The dashboard renders **zero values** against a fresh Prometheus. It
 will populate when a real sweep attaches a recording source. Per
 `docs/GAP_REPORT.md` §Gap 6, shipping a placeholder is honest only if
-the JSON self-describes as one — see the top-level `"description"`
+the JSON self-describes as one - see the top-level `"description"`
 field for the explicit gap.
 
 Honest framing:
@@ -38,7 +38,7 @@ Honest framing:
 `tests/test_grafana_dashboard.py` (5 tests) pins:
 
 - The JSON parses and has the modern Grafana top-level shape.
-- `schemaVersion >= 36` (Grafana 9+ — refuse to ship a v7-era file).
+- `schemaVersion >= 36` (Grafana 9+ - refuse to ship a v7-era file).
 - Every metric declared by `MetricsRegistry` is referenced by some
   panel's PromQL target.
 - Every ROADMAP Phase 8 panel token has a panel title.
