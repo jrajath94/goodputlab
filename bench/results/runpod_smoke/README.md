@@ -1,4 +1,4 @@
-# Smoke cell — 2026-07-17 — ladder rung 2
+# Smoke cell - 2026-07-17 - ladder rung 2
 
 Single gate-exempt health cell proving pod + vLLM + client + reconciler
 before any paid rung (`configs/runpod_smoke.yaml`, `smoke: true`).
