@@ -1,4 +1,4 @@
-# v1.2 sweep — 2026-07-17 — 54/54 reconciled, dedicated-GPU disagg
+# v1.2 sweep - 2026-07-17 - 54/54 reconciled, dedicated-GPU disagg
 
 First sweep where **every topology label maps to a genuinely different
 serving configuration**, run as three passes with server swaps between
@@ -39,15 +39,15 @@ Qwen2.5-7B, `--max-model-len 20480`, 5 warmup + 30 measure per cell.
 
 1. **Dedicated hardware fixes the collapse.** The 2026-07-17 single-GPU
    probe collapsed at 16 rps (0.73 success, 9 s TTFT). With one GPU per
-   stage, every rate through 32 rps reconciles at 1.00 success — the
+   stage, every rate through 32 rps reconciles at 1.00 success - the
    contention explanation holds.
 2. **Disagg still pays +134 ms mean TTFT vs colocated** (proxy hop +
-   handshake + transfer) at these loads with this 7B model — a single
+   handshake + transfer) at these loads with this 7B model - a single
    H100 is simply not saturated enough for stage separation to win.
    Disagg shows the best ITL (8.3 vs 8.8 ms): decode never shares its
    GPU with prefill bursts. This is the interference-isolation benefit,
    visible but small at 7B scale.
-3. **This is 2× the hardware for worse TTFT** at every measured load —
+3. **This is 2× the hardware for worse TTFT** at every measured load -
    the honest cost framing. The regime where disagg wins (long-prompt
    interference at saturation, strict ITL SLOs, bigger models) is
    documented as future work, not claimed.
