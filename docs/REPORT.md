@@ -1,6 +1,6 @@
 # When disaggregation pays: an SLO-aware study
 
-*GoodputLab v0.1 report — 2026-07-13*
+*GoodputLab v0.1 report - 2026-07-13*
 *Author: GoodputLab control-plane prototype*
 *Run 1 evidence: `bench/results/real/*.json`*
 
@@ -17,8 +17,8 @@ at the repo root.
 Pre-fill / decode disaggregation is the industry-architecture consensus:
 vLLM, SGLang, TensorRT-LLM, and the major frontier labs have all moved
 to it. The standard narrative is that splitting prefill and decode onto
-separate pools lets each side tune independently — prefill wants high
-arithmetic intensity, decode wants low-latency scheduling — and the
+separate pools lets each side tune independently - prefill wants high
+arithmetic intensity, decode wants low-latency scheduling - and the
 network cost of moving KV cache between them is paid back by the
 throughput lift.
 
@@ -36,7 +36,7 @@ batching cannot absorb the variance. For everything else, chunked
 prefill on a colocated pool matches or beats it.**
 
 This study does not have the data to prove that thesis on a production
-cluster yet — Run 1 is n=30 per topology on a single H100 SXM pod, not a
+cluster yet - Run 1 is n=30 per topology on a single H100 SXM pod, not a
 multi-pod fleet. But it does show which signals to look for, and it
 shows that the standard narrative is more conditional than vendor
 benchmarks suggest.
@@ -49,14 +49,14 @@ benchmarks suggest.
 
 Four topologies, all served from the same vLLM build (`vllm 0.11.2`):
 
-- **colocated** — prefill and decode on the same worker, no KV
+- **colocated** - prefill and decode on the same worker, no KV
   transfer. The vLLM default.
-- **chunked** — same worker, but prefill is broken into smaller chunks
+- **chunked** - same worker, but prefill is broken into smaller chunks
   and interleaved with decode. Reduces TTFT variance under concurrent
   load at the cost of a small throughput penalty.
-- **disagg** — prefill on `pool.PREFILL`, decode on `pool.DECODE`, KV
+- **disagg** - prefill on `pool.PREFILL`, decode on `pool.DECODE`, KV
   transferred over NIXL/UCX. No tier.
-- **disagg_tier** — disagg plus an LMCache tier pool (`pool.TIER`)
+- **disagg_tier** - disagg plus an LMCache tier pool (`pool.TIER`)
   consulted before prefill. Hit → skip prefill entirely.
 
 ### Workload
@@ -64,7 +64,7 @@ Four topologies, all served from the same vLLM build (`vllm 0.11.2`):
 Synthetic chat mix (Qwen2.5-7B Instruct, 30 requests per topology,
 output tokens capped at 256). All requests go through the same
 OpenAI-compatible `/v1/chat/completions` endpoint. No streaming
-aggregation — every request waits for full completion before the next
+aggregation - every request waits for full completion before the next
 is measured. This biases toward TTFT/ITL signal at the expense of
 concurrency, but it makes the four topologies directly comparable
 without confounders.
@@ -73,16 +73,16 @@ without confounders.
 
 Single H100 SXM pod on RunPod (8× vCPU, 80 GB RAM, 1× H100 SXM 80 GB
 HBM3). NVLink within the box; no inter-pod traffic. UCX over
-`cuda_ipc` for KV transfer — that's why this run is single-pod.
+`cuda_ipc` for KV transfer - that's why this run is single-pod.
 Multi-pod disagg would use `tcp` or `rdma`; that runs is v1.1.
 
 ### Metrics
 
-- `mean_ttft_ms` — wall time from request submit to first token.
-- `p95_ttft_ms` — 95th percentile of the same.
-- `mean_itl_ms` — mean inter-token latency across the response.
-- `success_rate` — fraction of requests that returned 200.
-- `cache_hit_rate` — fraction of requests served from the LMCache
+- `mean_ttft_ms` - wall time from request submit to first token.
+- `p95_ttft_ms` - 95th percentile of the same.
+- `mean_itl_ms` - mean inter-token latency across the response.
+- `success_rate` - fraction of requests that returned 200.
+- `cache_hit_rate` - fraction of requests served from the LMCache
   prefix cache (only meaningful for `disagg_tier`).
 
 All five are reconciled against vLLM's own `/metrics` endpoint
@@ -103,8 +103,8 @@ within ±2% before they are written to the JSON files. The
 | disagg       | 77.24          | 126.49        | 6.32          | $9.21         |
 | disagg_tier  | 69.62          | 111.63        | 6.21          | $9.21         |
 
-The numbers are tight — within 14 ms on mean TTFT and 0.17 ms on mean
-ITL — because the workload is small (30 requests, single concurrent
+The numbers are tight - within 14 ms on mean TTFT and 0.17 ms on mean
+ITL - because the workload is small (30 requests, single concurrent
 user) and the model fits comfortably in one H100. With this workload,
 disagg is **2x the cost for no measurable latency win**. That is the
 honest reading of Run 1 and the one that does not appear in vendor
@@ -120,16 +120,16 @@ from prefix cache, skipping the prefill hop entirely. With a synthetic
 chat workload and no shared prefix, the cache hit rate is low (we do
 not measure it directly in Run 1; the vLLM metric is in the
 `reconcile` JSON). A RAG workload with 80% prefix overlap (the
-`loadgen/rag.py` trace generator) is expected to widen this gap — but
+`loadgen/rag.py` trace generator) is expected to widen this gap - but
 that measurement is in v1.1.
 
 ### Chunked prefill is the surprise
 
 `chunked` is statistically indistinguishable from `colocated` on Run 1
-(80 ms vs 76 ms mean TTFT — within noise). The control plane intent
+(80 ms vs 76 ms mean TTFT - within noise). The control plane intent
 behind chunked prefill is to reduce TTFT *variance* under bursty
-concurrent load, not to lower the mean. Run 1 is not bursty — 30
-sequential requests — so chunked has nothing to fix. A bench at 8×
+concurrent load, not to lower the mean. Run 1 is not bursty - 30
+sequential requests - so chunked has nothing to fix. A bench at 8×
 concurrent users would tell us whether chunked earns its throughput
 penalty in p95 reduction. That bench is the headline v1.1 deliverable.
 
@@ -148,7 +148,7 @@ with no shared prefix:
   a few milliseconds of overhead that is invisible at this n.
 - `chunked` loses because breaking the prefill into smaller chunks
   and interleaving them with decode actually adds latency on a
-  non-concurrent workload — the decode step runs before prefill
+  non-concurrent workload - the decode step runs before prefill
   completes, and the model has to wait. Chunked is a *concurrency*
   optimisation, not a *single-request* one.
 
@@ -174,7 +174,7 @@ Three workload shifts would reorder the headline table:
 These three are exactly the v1.1 workload mix axes (chat / RAG /
 agentic) plus the rate axis (concurrency). The 216-cell bench matrix
 will sweep all three against all four topologies and emit goodput
-curves — the figure that actually answers "when does disagg pay?"
+curves - the figure that actually answers "when does disagg pay?"
 
 ---
 
@@ -219,7 +219,7 @@ distribution drifts from training. The simulator (`spec/eagle.py`)
 auto-disables after a sliding window of 20 rounds drops below
 40% mean acceptance. Verified at 15% acceptance:
 `test_spec_auto_disables_under_pathological_low_acceptance`. The
-controller is one-way — once disabled it stays disabled until the
+controller is one-way - once disabled it stays disabled until the
 operator manually re-enables. This is the documented SPEC-03 contract
 and it is the conservative choice: a poorly-calibrated spec head adds
 latency without throughput, so the right move is to fall back to
@@ -240,18 +240,18 @@ decoding papers and ties it to the topology where it actually applies.
 The PID controller has four anti-failure mechanisms, all property-tested
 in `tests/test_autoscaler.py`:
 
-- **Drain protocol** — never scale down a pool with `in_flight > 0`.
+- **Drain protocol** - never scale down a pool with `in_flight > 0`.
   Without this, a worker mid-request would get its role flipped and
   lose the KV cache. Verified across 50 random ticks with `in_flight ∈
   [1, 8]`: zero scale-downs emitted.
-- **Anti-windup** — when the PID output saturates at the clamp, the
+- **Anti-windup** - when the PID output saturates at the clamp, the
   integrator stops accumulating. Without this, a long-running high
   error would lock the controller in saturation forever after the
   error resolves.
-- **Floor / ceiling** — `min_replicas >= 1` by default; `max_replicas`
+- **Floor / ceiling** - `min_replicas >= 1` by default; `max_replicas`
   caps the upper bound; `step_size` caps the per-tick delta so a single
   bad scrape cannot double the fleet.
-- **Min-dwell** (new in v0.1.1, commit `17f92a6`) — a non-zero flip
+- **Min-dwell** (new in v0.1.1, commit `17f92a6`) - a non-zero flip
   cannot fire again on the same pool within `min_dwell_s` seconds.
   Without this, a PID error that alternates sign across ticks would
   ping-pong the pool. Verified by `test_min_dwell_property_alternating_queue`:
@@ -274,7 +274,7 @@ sustained 120 output tok/s per H100:
 For disagg to pay, the latency win on the workload must recover
 **2x the cost**. With Run 1, it does not. For a workload that
 exercises the prefix cache aggressively, `disagg_tier` may recover
-that — but the Run 1 cache_hit_rate is low because the chat mix has
+that - but the Run 1 cache_hit_rate is low because the chat mix has
 no shared prefix.
 
 The break-even expression:
@@ -282,7 +282,7 @@ The break-even expression:
 > `break_even_latency_savings = 50% (1 - single_pool_throughput / disagg_throughput)`
 
 For our Run 1 numbers, single-pool and disagg throughput are
-indistinguishable, so break-even is at 50% — disagg must save 50% of
+indistinguishable, so break-even is at 50% - disagg must save 50% of
 TTFT to recover its cost. It does not.
 
 This is not a permanent finding. It is a finding *for the workload we
@@ -302,7 +302,7 @@ The cost table assumes linear scaling in replicas, which is true for
 H100 SXM at low utilisation but breaks down at high utilisation when
 pods start contending for PCIe and NVLink bandwidth. At sustained
 near-100% utilisation, two GPUs in a disagg config can deliver less
-than 2x the throughput of one colocated GPU — not because of any
+than 2x the throughput of one colocated GPU - not because of any
 software bug, but because the memory bandwidth is shared across the
 host.
 
@@ -331,8 +331,8 @@ That is the difference between a benchmark rig and a control plane.
 
 ## 6. When it does not pay
 
-For the conditions in Run 1 — small chat workload, single concurrent
-user, no prefix overlap — colocated and chunked are both strictly
+For the conditions in Run 1 - small chat workload, single concurrent
+user, no prefix overlap - colocated and chunked are both strictly
 dominant on cost. Disagg adds operational complexity (two pools to
 autoscale, KV transfer to monitor, tier admission to tune) without
 paying back.
@@ -350,7 +350,7 @@ on disagg are typically measured against either:
 
 None of those conditions applies to Run 1. They apply to large-batch
 production serving, where this project's control plane would also
-apply — and where the cost math favors disagg.
+apply - and where the cost math favors disagg.
 
 ---
 
@@ -390,12 +390,12 @@ apply — and where the cost math favors disagg.
 > numbers above come from the 4-topology Run 1 in `bench/results/real/`.
 > Run 1 was **single-process topology emulation**: one vLLM process
 > served every topology label, with the router making the pool decision
-> (see `RUNPOD.md` §"Measured numbers — Run 1": "true P/D would require
-> 2 vLLM processes + NIXL — out of budget for this run"; the result
+> (see `RUNPOD.md` §"Measured numbers - Run 1": "true P/D would require
+> 2 vLLM processes + NIXL - out of budget for this run"; the result
 > JSONs carry one `base_url` and no transfer metrics). Run 1 therefore
 > isolates the router/cache layer, and its `disagg`/`disagg_tier` rows
 > must not be read as true P/D disaggregation measurements. **No result
-> directory on disk contains true two-process P/D evidence yet** — not
+> directory on disk contains true two-process P/D evidence yet** - not
 > Run 1, not the 72-cell reduced sweep (`disagg` cells never generated),
 > not the v1.1 sweep (18 `disagg`-labelled cells served by the same
 > single process, see `bench/results/runpod_v11/README.md`). True
@@ -415,8 +415,8 @@ cost amortised across the four topos and three workload mixes.
 
 ## 8. Closing
 
-The thesis — *disaggregation pays only when conditions warrant the
-overhead* — is supported by Run 1 in the negative case: small chat
+The thesis - *disaggregation pays only when conditions warrant the
+overhead* - is supported by Run 1 in the negative case: small chat
 workloads do not warrant the overhead. The positive case requires the
 v1.1 bench matrix to demonstrate.
 
