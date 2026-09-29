@@ -84,18 +84,18 @@ publication polish, not debugging.
 
 ## Concrete Changes (IMPLEMENTED 2026-07-16)
 
-### 1. Frugal Matrix Configs — DONE
+### 1. Frugal Matrix Configs - DONE
 
 Configs on disk, each header states cell count, expected wall time,
 promotion gate, output directory, and whether true disagg is required:
 
-- `configs/runpod_smoke.yaml` — 1 cell, `smoke: true` (gate exempt)
-- `configs/runpod_paired_chat.yaml` — 4 cells, colocated vs chunked
-- `configs/runpod_paired_disagg.yaml` — 2 cells, only with true P/D
-- `configs/runpod_context_repair.yaml` — 2 cells, RAG/agentic repair
+- `configs/runpod_smoke.yaml` - 1 cell, `smoke: true` (gate exempt)
+- `configs/runpod_paired_chat.yaml` - 4 cells, colocated vs chunked
+- `configs/runpod_paired_disagg.yaml` - 2 cells, only with true P/D
+- `configs/runpod_context_repair.yaml` - 2 cells, RAG/agentic repair
 - full sweep stays separate: `configs/runpod_matrix_full.yaml` (final only)
 
-### 2. Cost Preflight — DONE
+### 2. Cost Preflight - DONE
 
 `scripts/run_matrix.py` now prints, before any request: pending cell
 count (and how many existing cells are skipped), topology/model/rate/mix
@@ -106,7 +106,7 @@ Non-smoke runs refuse to start without `--approve-cost` or
 `APPROVE_GPU_SPEND=yes` (exit code 5). The preflight is also written to
 `<output_dir>/preflight.json` as part of the run's evidence trail.
 
-### 3. Resume, Do Not Restart — DONE
+### 3. Resume, Do Not Restart - DONE
 
 `run_pending` is the default; `--run-all` is the explicit rerun path and
 prints an overwrite warning. Paid runs stop after the first unreconciled
@@ -119,7 +119,7 @@ Invariants held:
 - failed/unreconciled cells are marked (`reconcile_passes: false`), not
   silently retried; rerunning them requires an explicit `--run-all`
 
-### 4. Prompt Waste — DONE (root cause measured)
+### 4. Prompt Waste - DONE (root cause measured)
 
 The prompt preflight in `scripts/run_matrix.py` generates the exact
 traces the cells would fire (same generators, same seeds) and checks
@@ -127,7 +127,7 @@ prompt + output budgets against the config's `max_model_len` before any
 spend. Overflow aborts with exit code 6 unless `--allow-overflow`.
 
 Measured locally on 2026-07-16: RAG prompts run ~18.2-18.4K tokens with a
-worst-case prompt+output of **18,539 tokens** — this is the exact reason
+worst-case prompt+output of **18,539 tokens** - this is the exact reason
 the reduced sweep's RAG cells returned HTTP 400 under a 16384 context
 window. `configs/runpod_context_repair.yaml` therefore sets
 `max_model_len: 20480`; launch vLLM with `--max-model-len 20480` after
@@ -342,7 +342,7 @@ Use `configs/runpod_paired_chat.yaml` (4 cells: colocated vs chunked at
 python -m scripts.run_matrix --config configs/runpod_paired_chat.yaml --approve-cost
 ```
 
-If — and only if — disagg is truly configured with separate P/D
+If - and only if - disagg is truly configured with separate P/D
 processes, run the 2-cell comparison in
 `configs/runpod_paired_disagg.yaml`. A colocated server labeled "disagg"
 is label-only data and must never enter a topology table.
@@ -360,7 +360,7 @@ Promote only if:
 Goal: stop paying for prompt overflow.
 
 Before GPU, the prompt preflight runs automatically inside
-`scripts/run_matrix.py` — it generates the exact traces the cells would
+`scripts/run_matrix.py` - it generates the exact traces the cells would
 fire and aborts on predicted overflow. Already measured on the M1
 (2026-07-16): RAG worst prompt+output = 18,539 tokens, agentic = 11,710.
 So `--max-model-len 16384` can never work for RAG; use 20480.
